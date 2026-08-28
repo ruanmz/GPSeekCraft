@@ -222,15 +222,15 @@ export function ItemDrops() {
             const standY = (floorIdx + 1) + 0.11
             if (ny < standY) {
               ny = standY
-              if (drop.bouncing && drop.vy < -0.6) {
-                drop.vy = Math.min(-drop.vy * 0.38, 3.6)
-                // 水平也稍微反弹 + 衰减
+              drop.y = standY
+              // 只在初次落地时做一次很小的反弹；之后锁定在方块顶面，避免每帧重新穿透修正导致上下抖动。
+              if (drop.bouncing && drop.age < 0.45 && drop.vy < -1.2) {
+                drop.vy = Math.min(-drop.vy * 0.16, 1.1)
                 drop.vx *= 0.55
                 drop.vz *= 0.55
               } else {
                 drop.vy = 0
                 drop.bouncing = false
-                // 落地后摩擦：把水平速度按比例阻尼到 0
                 drop.vx *= 0.72
                 drop.vz *= 0.72
                 if (Math.abs(drop.vx) < 0.01) drop.vx = 0

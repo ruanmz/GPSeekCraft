@@ -236,8 +236,8 @@ function Game() {
   )
 }
 
-// 心形/钻石形像素条 — 1 格 = 2 HP/饥饿，因此 10 格 = 20 满值
-// 用内联 SVG（10 颗心横向平铺），每一颗分为左半+右半，支持"半颗"着色
+// Minecraft 风格状态栏：生命使用心形，饥饿使用鸡腿；不复用物品栏的食物图标。
+// 用内联 SVG（10 颗心横向平铺），每��颗分为左半+右半，支持"半颗"着色
 function McHealthBar({ health, maxHealth = 20 }: { health: number; maxHealth?: number }) {
   const clamped = Math.max(0, Math.min(maxHealth, health))
   // 总共有 20 个"半心"单位
