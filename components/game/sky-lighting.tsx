@@ -80,14 +80,16 @@ export function SkyLighting() {
         castShadow
         intensity={1}
         color="#fff3d6"
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-near={0.5}
-        shadow-camera-far={200}
-        shadow-camera-left={-60}
-        shadow-camera-right={60}
-        shadow-camera-top={60}
-        shadow-camera-bottom={-60}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
+        shadow-camera-near={1}
+        shadow-camera-far={140}
+        shadow-camera-left={-42}
+        shadow-camera-right={42}
+        shadow-camera-top={42}
+        shadow-camera-bottom={-42}
+        shadow-bias={-0.00035}
+        shadow-normalBias={0.025}
       />
       <directionalLight ref={moonRef} intensity={0.15} color="#8fa8d8" />
     </>

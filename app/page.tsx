@@ -241,7 +241,7 @@ function Game() {
 function McHealthBar({ health, maxHealth = 20 }: { health: number; maxHealth?: number }) {
   const clamped = Math.max(0, Math.min(maxHealth, health))
   // 总共有 20 个"半心"单位
-  const halfUnits = Math.round((clamped / maxHealth) * 20)
+  const halfUnits = Math.max(0, Math.min(20, Math.floor(clamped)))
   const unitW = 13, unitH = 12, gap = 2
   const count = 10
   const totalW = count * unitW + (count - 1) * gap
@@ -257,21 +257,10 @@ function McHealthBar({ health, maxHealth = 20 }: { health: number; maxHealth?: n
     // 心形路径（13×12，纯像素感）
     return (
       <g key={`h-${i}`} transform={`translate(${ox} ${oy})`}>
-        {/* 左半（深/浅红填充 + 高光小点） */}
-        <path
-          d="M0 3 H2 V1 H5 V2 H6 V6 L3 10 L0 7 Z"
-          fill={leftFull ? "#d42a2a" : "#4a2020"}
-          stroke={stroke}
-          strokeWidth={1}
-        />
-        {/* 右半 */}
-        <path
-          d="M6 2 H9 V1 H11 V3 H13 V7 L10 10 L6 6 Z"
-          fill={rightFull ? "#e83c3c" : "#3a1818"}
-          stroke={stroke}
-          strokeWidth={1}
-        />
-        {/* 高光 */}
+        <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#3a1818" stroke={stroke} strokeWidth={1} />
+        <clipPath id={`heart-left-${i}`}><rect x="0" y="0" width="6.5" height="12" /></clipPath>
+        {leftFull && <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#d42a2a" clipPath={`url(#heart-left-${i})`} />}
+        {rightFull && <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#e83c3c" />}
         {leftFull && <rect x={2} y={3} width={1} height={1} fill="#ffb4b4" />}
         {rightFull && <rect x={7} y={3} width={1} height={1} fill="#ffc6c6" />}
       </g>
