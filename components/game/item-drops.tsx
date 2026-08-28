@@ -15,7 +15,34 @@ const TERMINAL_VY = -24
 const PICK_RADIUS = 1.55
 const ABSORB_DURATION = 0.1
 const DESPAWN_SECONDS = 300
-const PICKUP_COOLDOWN = 1.5
+const PICKUP_COOLDOWN = 1.75
+
+function createDropMaterial(id: ItemId, color: string) {
+  const canvas = document.createElement("canvas")
+  canvas.width = 16
+  canvas.height = 16
+  const ctx = canvas.getContext("2d")!
+  ctx.imageSmoothingEnabled = false
+  ctx.fillStyle = color
+  ctx.fillRect(0, 0, 16, 16)
+  let seed = id * 9973
+  for (let i = 0; i < 42; i++) {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    const x = seed % 16
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    const y = seed % 16
+    const light = ((seed >>> 8) & 1) ? 18 : -18
+    ctx.fillStyle = `rgb(${Math.max(0, Math.min(255, parseInt(color.slice(1, 3), 16) + light))},${Math.max(0, Math.min(255, parseInt(color.slice(3, 5), 16) + light))},${Math.max(0, Math.min(255, parseInt(color.slice(5, 7), 16) + light))})`
+    ctx.fillRect(x, y, 1, 1)
+  }
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.magFilter = THREE.NearestFilter
+  texture.minFilter = THREE.NearestFilter
+  texture.colorSpace = THREE.SRGBColorSpace
+  const material = new THREE.MeshLambertMaterial({ map: texture })
+  material.userData.canvasTexture = texture
+  return material
+}
 
 type Drop = {
   key: number
@@ -44,11 +71,12 @@ export function ItemDrops() {
   const addItem = useGame((s) => s.addItem)
 
   const materialCacheRef = useRef<Map<string, THREE.MeshLambertMaterial>>(new Map())
-  const getMaterial = (colorStr: string) => {
-    let m = materialCacheRef.current.get(colorStr)
+  const getMaterial = (id: ItemId, colorStr: string) => {
+    const cacheKey = `${id}:${colorStr}`
+    let m = materialCacheRef.current.get(cacheKey)
     if (!m) {
-      m = new THREE.MeshLambertMaterial({ color: new THREE.Color(colorStr) })
-      materialCacheRef.current.set(colorStr, m)
+      m = createDropMaterial(id, colorStr)
+      materialCacheRef.current.set(cacheKey, m)
     }
     return m
   }
@@ -84,7 +112,7 @@ export function ItemDrops() {
       absorbT: 0,
     }
     dropsRef.current.push(drop)
-    const mat = getMaterial(getItem(item.id).color)
+    const mat = getMaterial(item.id, getItem(item.id).color)
     const mesh = new THREE.Mesh(sharedBox, mat)
     mesh.position.set(drop.x, drop.y, drop.z)
     mesh.scale.setScalar(0.78)
@@ -126,7 +154,10 @@ export function ItemDrops() {
         const bx = Math.floor(drop.x)
         const by = Math.floor(drop.y)
         const bz = Math.floor(drop.z)
-        if ((world.getBlock(bx, by, bz) ?? BLOCKS.AIR) === BLOCKS.LAVA) {
+        if (
+          (world.getBlock(bx, by, bz) ?? BLOCKS.AIR) === BLOCKS.LAVA ||
+          (world.getBlock(bx, by - 1, bz) ?? BLOCKS.AIR) === BLOCKS.LAVA
+        ) {
           disposeDrop(drop)
           drops.splice(i, 1)
           continue
