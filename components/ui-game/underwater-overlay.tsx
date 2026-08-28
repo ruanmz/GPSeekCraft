@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { useGame } from "@/lib/store"
 import { player } from "@/lib/player-ref"
 
 export function UnderwaterOverlay() {
@@ -12,8 +11,12 @@ export function UnderwaterOverlay() {
     const loop = () => {
       const el = overlayRef.current
       if (el) {
-        if (player.headUnderWater) {
+        if (player.headUnderLava) {
           el.style.opacity = "1"
+          el.style.background = "rgba(180, 60, 20, 0.45)"
+        } else if (player.headUnderWater) {
+          el.style.opacity = "1"
+          el.style.background = "rgba(40, 80, 180, 0.35)"
         } else {
           el.style.opacity = "0"
         }
@@ -34,7 +37,6 @@ export function UnderwaterOverlay() {
         zIndex: 20,
         opacity: 0,
         transition: "opacity 0.3s ease",
-        background: "rgba(40, 80, 180, 0.35)",
         backdropFilter: "blur(2px)",
         WebkitBackdropFilter: "blur(2px)",
       }}
