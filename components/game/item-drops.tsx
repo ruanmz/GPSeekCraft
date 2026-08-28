@@ -15,8 +15,6 @@ const TERMINAL_VY = -24
 const PICK_RADIUS = 1.55
 const ABSORB_DURATION = 0.1
 const DESPAWN_SECONDS = 300
-// 丢出后的拾取延迟：刚丢出时玩家还在掉落物生成位置，需要等一会才能拾回
-const PICKUP_DELAY = 0.6
 
 type Drop = {
   key: number
@@ -201,23 +199,10 @@ export function ItemDrops() {
       }
       drop.y = ny
 
-      // 岩浆接触：掉落物直接销毁
-      if (world) {
-        const by = Math.floor(drop.y)
-        const bx = Math.floor(drop.x)
-        const bz = Math.floor(drop.z)
-        const here = world.getBlock(bx, by, bz) ?? BLOCKS.AIR
-        if (here === BLOCKS.LAVA) {
-          disposeDrop(drop)
-          drops.splice(i, 1)
-          continue
-        }
-      }
-
       const dx = playerX - drop.x
       const dy = playerY - drop.y
       const dz = playerZ - drop.z
-      if (drop.age >= PICKUP_DELAY && dx * dx + dy * dy + dz * dz <= PICK_R2) {
+      if (dx * dx + dy * dy + dz * dz <= PICK_R2) {
         drop.absorbing = true
         drop.absorbT = 0
         drop.ox = drop.x

@@ -116,12 +116,12 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
   },
   [BLOCKS.GRASS]: {
     id: 1, key: "GRASS", name: "草方块",
-    top: c("#6aa84f"), side: c("#9a7c5e"), bottom: c("#9a7c5e"),
+    top: c("#6aa84f"), side: c("#7a5c3e"), bottom: c("#7a5c3e"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.6, drop: BLOCKS.DIRT,
   },
   [BLOCKS.DIRT]: {
     id: 2, key: "DIRT", name: "泥土",
-    top: c("#9a7c5e"), side: c("#9a7c5e"), bottom: c("#9a7c5e"),
+    top: c("#7a5c3e"), side: c("#7a5c3e"), bottom: c("#7a5c3e"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.5,
   },
   [BLOCKS.STONE]: {
@@ -156,13 +156,13 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
   },
   [BLOCKS.LOG]: {
     id: 9, key: "LOG", name: "橡木原木",
-    top: c("#b89a5f"), side: c("#8a6a42"), bottom: c("#b89a5f"),
+    top: c("#a9884f"), side: c("#6b4f2f"), bottom: c("#a9884f"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 1, fuel: 300,
   },
   [BLOCKS.LEAVES]: {
     id: 10, key: "LEAVES", name: "树叶",
     top: c("#4f8a3a"), side: c("#4f8a3a"), bottom: c("#3f6f2e"),
-    solid: false, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2, drop: BLOCKS.AIR,
+    solid: true, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2,
   },
   [BLOCKS.PLANKS]: {
     id: 11, key: "PLANKS", name: "木板",
@@ -176,7 +176,7 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
   },
   [BLOCKS.SNOW_GRASS]: {
     id: 13, key: "SNOW_GRASS", name: "雪草方块",
-    top: c("#f5f7fa"), side: c("#9a8c6e"), bottom: c("#9a7c5e"),
+    top: c("#f5f7fa"), side: c("#8a7c5e"), bottom: c("#7a5c3e"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.6, drop: BLOCKS.DIRT,
   },
   [BLOCKS.ICE]: {
@@ -356,23 +356,23 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
   },
   [BLOCKS.JUNGLE_LOG]: {
     id: 49, key: "JUNGLE_LOG", name: "丛林原木",
-    top: c("#b89a5f"), side: c("#8a6a42"), bottom: c("#b89a5f"),
+    top: c("#a9885f"), side: c("#6b4f2f"), bottom: c("#a9885f"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 2, fuel: 300,
   },
   [BLOCKS.SPRUCE_LEAVES]: {
     id: 50, key: "SPRUCE_LEAVES", name: "云杉树叶",
     top: c("#2f5a2a"), side: c("#2f5a2a"), bottom: c("#264a22"),
-    solid: false, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2, drop: BLOCKS.AIR,
+    solid: true, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2,
   },
   [BLOCKS.BIRCH_LEAVES]: {
     id: 51, key: "BIRCH_LEAVES", name: "白桦树叶",
     top: c("#7ac84a"), side: c("#7ac84a"), bottom: c("#6ab83a"),
-    solid: false, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2, drop: BLOCKS.AIR,
+    solid: true, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2,
   },
   [BLOCKS.JUNGLE_LEAVES]: {
     id: 52, key: "JUNGLE_LEAVES", name: "丛林树叶",
     top: c("#4f9a3a"), side: c("#4f9a3a"), bottom: c("#3f8a2e"),
-    solid: false, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2, drop: BLOCKS.AIR,
+    solid: true, transparent: true, liquid: false, gravity: false, luminance: 0, hardness: 0.2,
   },
   [BLOCKS.BOOKSHELF]: {
     id: 53, key: "BOOKSHELF", name: "书架",
@@ -406,17 +406,17 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
   },
   [BLOCKS.DIRT_PATH]: {
     id: 59, key: "DIRT_PATH", name: "草径",
-    top: c("#b89a6a"), side: c("#9a7c5e"), bottom: c("#9a7c5e"),
+    top: c("#b89a6a"), side: c("#7a5c3e"), bottom: c("#7a5c3e"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.6,
   },
   [BLOCKS.PODZOL]: {
     id: 60, key: "PODZOL", name: "灰化土",
-    top: c("#5a4a3a"), side: c("#7a6a5a"), bottom: c("#9a7c5e"),
+    top: c("#5a4a3a"), side: c("#6a5a4a"), bottom: c("#7a5c3e"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.5,
   },
   [BLOCKS.MYCELIUM]: {
     id: 61, key: "MYCELIUM", name: "菌丝",
-    top: c("#a88ac8"), side: c("#8a6a9a"), bottom: c("#9a7c5e"),
+    top: c("#a88ac8"), side: c("#8a6a9a"), bottom: c("#7a5c3e"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.5,
   },
   [BLOCKS.OBSIDIAN]: {

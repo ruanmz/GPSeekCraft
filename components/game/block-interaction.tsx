@@ -67,8 +67,7 @@ export function raycastVoxel(origin: THREE.Vector3, direction: THREE.Vector3, ma
     const id = world.getBlock(vx, vy, vz)
     if (id !== undefined && id !== BLOCKS.AIR) {
       const def = BLOCK_DEFS[id as BlockId]
-      // 可瞄准：非液体且非空气（含树叶、梯子等非固体但可破坏的方块）
-      if (def && !def.liquid) {
+      if (def?.solid) {
         // 命中面法线：把 ray 进入这个方块时跨过的面方向，取反 sign（因为 step 是 ray 行进方向，被击中方块面朝向是 -step）
         const nx = faceAxis === "x" ? -faceSign : 0
         const ny = faceAxis === "y" ? -faceSign : 0
@@ -290,8 +289,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     const world = useGame.getState().world
     if (!world) return
     const previous = hit.id
-    const dropDef = BLOCK_DEFS[previous]
-    const drop = (dropDef?.drop ?? previous) as BlockId
+    const drop = (BLOCK_DEFS[previous]?.drop ?? previous) as BlockId
     const dirtyChunks = new Set<string>(world.setBlock(hit.x, hit.y, hit.z, BLOCKS.AIR) ?? [])
     // 方块在 chunk 边界时需要把相邻 chunk 也标 dirty（面剔除会联动）
     const cx = Math.floor(hit.x / 16), cz = Math.floor(hit.z / 16)
@@ -299,7 +297,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     if (hit.x === (cx + 1) * 16 - 1) dirtyChunks.add(chunkKey(cx + 1, cz))
     if (hit.z === cz * 16) dirtyChunks.add(chunkKey(cx, cz - 1))
     if (hit.z === (cz + 1) * 16 - 1) dirtyChunks.add(chunkKey(cx, cz + 1))
-    if (useGame.getState().gameMode !== "creative" && drop !== BLOCKS.AIR) {
+    if (useGame.getState().gameMode !== "creative") {
       worldEvents.emit(EV_ITEM_DROP, { id: drop, x: hit.x + 0.5, y: hit.y + 0.65, z: hit.z + 0.5 })
     }
     worldEvents.emit(EV_BLOCK_CHANGE, { x: hit.x, y: hit.y, z: hit.z, id: BLOCKS.AIR, prev: previous })
@@ -329,8 +327,8 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     // 1) 目标格必须是空气或可替代液体（水/岩浆被放进去就被顶掉），否则拒绝
     const cur = world.getBlock(x, y, z) ?? BLOCKS.AIR
     const curDef = BLOCK_DEFS[cur as BlockId]
-    const curLiquid = curDef?.liquid ?? false
-    if (cur !== BLOCKS.AIR && !curLiquid) return
+    const curSolid = curDef?.solid ?? false
+    if (cur !== BLOCKS.AIR && curSolid) return
     // 2) 不能把方块塞进玩家身体里（生存搭脚除外——仅当目标格 < 玩家脚底时允许，玩家会被顶上去）
     {
       const hw = 0.3 // 和碰撞检测保持一致（PLAYER_WIDTH = 0.6 的一半）
