@@ -1,7 +1,7 @@
 "use client"
 
 import { create } from "zustand"
-import { getItem, type ItemId } from "./items"
+import { getItem, creativeItems, type ItemId } from "./items"
 import type { ItemStack } from "./save"
 import { World } from "./world"
 import { matchRecipe, SMELTING, fuelBurnTime, smeltResult } from "./crafting"
@@ -159,14 +159,17 @@ export const useGame = create<GameState>((set, get) => ({
 
   initWorld: (seed, gameMode) => {
     const world = new World(seed)
+    const creativeStacks = gameMode === "creative"
+      ? creativeItems().map((id) => ({ id, count: 64 } as ItemStack))
+      : []
     set({
       world,
       seed,
       gameMode,
       health: 20,
       hunger: 20,
-      hotbar: emptySlots(9),
-      inventory: emptySlots(27),
+      hotbar: gameMode === "creative" ? [...creativeStacks.slice(0, 9)] : emptySlots(9),
+      inventory: gameMode === "creative" ? [...creativeStacks.slice(9, 36), ...emptySlots(Math.max(0, 27 - creativeStacks.slice(9, 36).length))] : emptySlots(27),
       selectedHotbar: 0,
       craftGrid: emptySlots(9),
       craftResult: null,

@@ -237,7 +237,7 @@ function Game() {
 }
 
 // Minecraft 风格状态栏：生命使用心形，饥饿使用鸡腿；不复用物品栏的食物图标。
-// 用内联 SVG（10 颗心横向平铺），每��颗分为左半+右半，支持"半颗"着色
+// 用内��� SVG（10 颗心横向平铺），每��颗分为左半+右半，支持"半颗"着色
 function McHealthBar({ health, maxHealth = 20 }: { health: number; maxHealth?: number }) {
   const clamped = Math.max(0, Math.min(maxHealth, health))
   // 总共有 20 个"半心"单位
@@ -259,14 +259,14 @@ function McHealthBar({ health, maxHealth = 20 }: { health: number; maxHealth?: n
       <g key={`h-${i}`} transform={`translate(${ox} ${oy})`}>
         {/* 左半（深/浅红填充 + 高光小点） */}
         <path
-          d="M1 2 L3 2 L3 1 L4 1 L4 2 L6 2 L6 4 L4 6 L4 9 L3 10 L1 8 Z"
+          d="M0 3 H2 V1 H5 V2 H6 V6 L3 10 L0 7 Z"
           fill={leftFull ? "#d42a2a" : "#4a2020"}
           stroke={stroke}
           strokeWidth={1}
         />
         {/* 右半 */}
         <path
-          d="M6 2 L8 2 L8 1 L9 1 L9 2 L11 2 L11 4 L9 6 L9 9 L8 10 L6 8 Z"
+          d="M6 2 H9 V1 H11 V3 H13 V7 L10 10 L6 6 Z"
           fill={rightFull ? "#e83c3c" : "#3a1818"}
           stroke={stroke}
           strokeWidth={1}
