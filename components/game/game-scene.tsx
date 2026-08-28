@@ -39,6 +39,7 @@ export function GameScene() {
         gl.setClearColor("#87ceeb")
         gl.shadowMap.enabled = true
         gl.shadowMap.type = THREE.PCFSoftShadowMap
+        gl.shadowMap.autoUpdate = true
       }}
     >
       <color attach="background" args={["#87ceeb"]} />

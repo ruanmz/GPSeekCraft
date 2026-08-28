@@ -67,7 +67,7 @@ export function raycastVoxel(origin: THREE.Vector3, direction: THREE.Vector3, ma
     const id = world.getBlock(vx, vy, vz)
     if (id !== undefined && id !== BLOCKS.AIR) {
       const def = BLOCK_DEFS[id as BlockId]
-      if (def?.solid) {
+      if (def && (def.solid || id === BLOCKS.LEAVES || id === BLOCKS.SPRUCE_LEAVES || id === BLOCKS.BIRCH_LEAVES || id === BLOCKS.JUNGLE_LEAVES)) {
         // 命中面法线：把 ray 进入这个方块时跨过的面方向，取反 sign（因为 step 是 ray 行进方向，被击中方块面朝向是 -step）
         const nx = faceAxis === "x" ? -faceSign : 0
         const ny = faceAxis === "y" ? -faceSign : 0
@@ -297,7 +297,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     if (hit.x === (cx + 1) * 16 - 1) dirtyChunks.add(chunkKey(cx + 1, cz))
     if (hit.z === cz * 16) dirtyChunks.add(chunkKey(cx, cz - 1))
     if (hit.z === (cz + 1) * 16 - 1) dirtyChunks.add(chunkKey(cx, cz + 1))
-    if (useGame.getState().gameMode !== "creative") {
+    if (useGame.getState().gameMode !== "creative" && drop !== BLOCKS.AIR) {
       worldEvents.emit(EV_ITEM_DROP, { id: drop, x: hit.x + 0.5, y: hit.y + 0.65, z: hit.z + 0.5 })
     }
     worldEvents.emit(EV_BLOCK_CHANGE, { x: hit.x, y: hit.y, z: hit.z, id: BLOCKS.AIR, prev: previous })
@@ -436,13 +436,13 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
           if (hit.id === BLOCKS.FURNACE) {
             useGame.getState().setOverlay("furnace")
           } else if (hit.id === BLOCKS.CRAFTING_TABLE) {
-            useGame.getState().setOverlay("inventory")
+            useGame.getState().setOverlay("crafting")
           } else {
             const sel = useGame.getState().getSelected()
             const holdingPlaceable = sel && sel.id < 100 && isPlaceable(sel.id)
             if (holdingPlaceable) {
               placeBlock(hit)
-              placeCooldownRef.current = 1000 // 1 秒后才连续放
+              placeCooldownRef.current = 500 // 1 秒后才连续放
             }
           }
         }
@@ -519,7 +519,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
       if (hit.id === BLOCKS.FURNACE) {
         useGame.getState().setOverlay("furnace")
       } else if (hit.id === BLOCKS.CRAFTING_TABLE) {
-        useGame.getState().setOverlay("inventory")
+        useGame.getState().setOverlay("crafting")
       } else {
         const sel = useGame.getState().getSelected()
         const holdingPlaceable = sel && sel.id < 100 && isPlaceable(sel.id)
@@ -536,7 +536,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
         const sel = useGame.getState().getSelected()
         if (sel && sel.id < 100 && isPlaceable(sel.id)) {
           placeBlock(hit)
-          placeCooldownRef.current = 1000
+          placeCooldownRef.current = 500
         }
       }
     }
@@ -632,7 +632,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
       const def = BLOCK_DEFS[hit.id]
       if (def?.hardness !== -1) {
         const now = performance.now()
-        if (now - lastCreativeBreak.current >= 1000) {
+        if (now - lastCreativeBreak.current >= 500) {
           lastCreativeBreak.current = now
           // eslint-disable-next-line no-console
           console.log(

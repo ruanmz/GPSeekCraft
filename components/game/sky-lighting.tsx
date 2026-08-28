@@ -4,6 +4,7 @@ import { useRef } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { useGame } from "@/lib/store"
+import { player } from "@/lib/player-ref"
 
 const DAY_LENGTH = 1200 // 一整天 1200 秒（20 分钟）
 
@@ -39,8 +40,9 @@ export function SkyLighting() {
     const sunZ = 0.3
 
     if (sunRef.current) {
-      sunRef.current.position.set(sunX * 100, sunY * 100, sunZ * 100)
-      sunRef.current.intensity = Math.max(0, sunY) * 1.3 + 0.02
+      sunRef.current.position.set(player.x + sunX * 100, player.y + sunY * 100, player.z + sunZ * 100)
+      sunRef.current.target.position.set(player.x, player.y, player.z)
+      sunRef.current.intensity = Math.max(0, sunY) * 0.95 + 0.02
     }
     if (moonRef.current) {
       moonRef.current.position.set(-sunX * 100, -sunY * 100, -sunZ * 100)
@@ -52,10 +54,10 @@ export function SkyLighting() {
     const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3) // 接近地平线时的日出日落
 
     if (ambientRef.current) {
-      ambientRef.current.intensity = 0.18 + dayness * 0.55
+      ambientRef.current.intensity = 0.08 + dayness * 0.22
     }
     if (hemiRef.current) {
-      hemiRef.current.intensity = 0.2 + dayness * 0.4
+      hemiRef.current.intensity = 0.08 + dayness * 0.18
     }
 
     // 天空/雾颜色
@@ -78,14 +80,16 @@ export function SkyLighting() {
         castShadow
         intensity={1}
         color="#fff3d6"
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-near={0.5}
-        shadow-camera-far={200}
-        shadow-camera-left={-60}
-        shadow-camera-right={60}
-        shadow-camera-top={60}
-        shadow-camera-bottom={-60}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
+        shadow-camera-near={1}
+        shadow-camera-far={140}
+        shadow-camera-left={-42}
+        shadow-camera-right={42}
+        shadow-camera-top={42}
+        shadow-camera-bottom={-42}
+        shadow-bias={-0.00035}
+        shadow-normalBias={0.025}
       />
       <directionalLight ref={moonRef} intensity={0.15} color="#8fa8d8" />
     </>

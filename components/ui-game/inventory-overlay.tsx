@@ -135,7 +135,8 @@ export function InventoryOverlay() {
   const craftGrid = useGame((s) => s.craftGrid)
   const craftResult = useGame((s) => s.craftResult)
 
-  const isOpen = overlay === "inventory"
+  const isOpen = overlay === "inventory" || overlay === "crafting"
+  const isWorkbench = overlay === "crafting"
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -202,12 +203,12 @@ export function InventoryOverlay() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 44px)",
-                gridTemplateRows: "repeat(3, 44px)",
+                gridTemplateColumns: `repeat(${isWorkbench ? 3 : 2}, 44px)`,
+                gridTemplateRows: `repeat(${isWorkbench ? 3 : 2}, 44px)`,
                 gap: 2,
               }}
             >
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              {Array.from({ length: isWorkbench ? 9 : 4 }, (_, i) => i).map((i) => (
                 <Slot
                   key={i}
                   area="craft"
