@@ -253,9 +253,9 @@ export const useGame = create<GameState>((set, get) => ({
     const dx = -Math.sin(yaw)
     const dz = -Math.cos(yaw)
     // 初始：玩家体中高度（eye 高约 1.62，这里用 1.4）
-    const originX = player.x
-    const originY = player.y + 1.4
-    const originZ = player.z
+    const originX = player.x + dx * 0.9
+    const originY = player.y + 1.15
+    const originZ = player.z + dz * 0.9
     // 连续掉出（同一种类）时，每一个稍微错开位置，避免堆叠同坐标
     for (let i = 0; i < dropCount; i++) {
       const jitterX = (Math.random() - 0.5) * 0.08
@@ -267,9 +267,9 @@ export const useGame = create<GameState>((set, get) => ({
         x: originX + jitterX,
         y: originY + jitterY,
         z: originZ + jitterZ,
-        vx: dx * 0.25 + (Math.random() - 0.5) * 0.06,
-        vy: 0.35,
-        vz: dz * 0.25 + (Math.random() - 0.5) * 0.06,
+        vx: dx * 1.15 + (Math.random() - 0.5) * 0.12,
+        vy: 1.25 + Math.random() * 0.35,
+        vz: dz * 1.15 + (Math.random() - 0.5) * 0.12,
       })
     }
     const left = slot.count - actual

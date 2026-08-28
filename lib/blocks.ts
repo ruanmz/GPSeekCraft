@@ -116,12 +116,12 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
   },
   [BLOCKS.GRASS]: {
     id: 1, key: "GRASS", name: "草方块",
-    top: c("#6aa84f"), side: c("#a07a52"), bottom: c("#a07a52"),
+    top: c("#78b85a"), side: c("#c49a6a"), bottom: c("#b8895c"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.6, drop: BLOCKS.DIRT,
   },
   [BLOCKS.DIRT]: {
     id: 2, key: "DIRT", name: "泥土",
-    top: c("#a07a52"), side: c("#a07a52"), bottom: c("#a07a52"),
+    top: c("#c49a6a"), side: c("#c49a6a"), bottom: c("#b8895c"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 0.5,
   },
   [BLOCKS.STONE]: {
@@ -156,7 +156,7 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
   },
   [BLOCKS.LOG]: {
     id: 9, key: "LOG", name: "橡木原木",
-    top: c("#b8965a"), side: c("#8a6a42"), bottom: c("#b8965a"),
+    top: c("#d0aa6c"), side: c("#ad7f4e"), bottom: c("#d0aa6c"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 1, fuel: 300,
   },
   [BLOCKS.LEAVES]: {
