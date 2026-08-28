@@ -11,6 +11,7 @@ export interface PlayerRuntime {
   onGround: boolean
   inWater: boolean
   headUnderWater: boolean
+  headUnderLava: boolean
   sprinting: boolean
   sneaking: boolean
   // 上一帧脚下方块，用于摔落伤害计算
@@ -30,6 +31,7 @@ export const player: PlayerRuntime = {
   onGround: false,
   inWater: false,
   headUnderWater: false,
+  headUnderLava: false,
   sprinting: false,
   sneaking: false,
   fallStartY: 40,
