@@ -15,7 +15,6 @@ const TERMINAL_VY = -24
 const PICK_RADIUS = 1.55
 const ABSORB_DURATION = 0.1
 const DESPAWN_SECONDS = 300
-const PICKUP_COOLDOWN = 1.5
 
 type Drop = {
   key: number
@@ -122,17 +121,6 @@ export function ItemDrops() {
       const mesh = meshMapRef.current.get(drop.key)
       if (!mesh) continue
 
-      if (world) {
-        const bx = Math.floor(drop.x)
-        const by = Math.floor(drop.y)
-        const bz = Math.floor(drop.z)
-        if ((world.getBlock(bx, by, bz) ?? BLOCKS.AIR) === BLOCKS.LAVA) {
-          disposeDrop(drop)
-          drops.splice(i, 1)
-          continue
-        }
-      }
-
       if (drop.absorbing) {
         drop.absorbT = Math.min(1, drop.absorbT + dt / ABSORB_DURATION)
         const t = easeOutCubic(drop.absorbT)
@@ -214,7 +202,7 @@ export function ItemDrops() {
       const dx = playerX - drop.x
       const dy = playerY - drop.y
       const dz = playerZ - drop.z
-      if (drop.age >= PICKUP_COOLDOWN && dx * dx + dy * dy + dz * dz <= PICK_R2) {
+      if (dx * dx + dy * dy + dz * dz <= PICK_R2) {
         drop.absorbing = true
         drop.absorbT = 0
         drop.ox = drop.x

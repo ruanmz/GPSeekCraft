@@ -288,7 +288,6 @@ export function PlayerController() {
     const creativeFly = st.gameMode === "creative" && st.flying
     player.inWater = inLiquid(world, player.x, player.y, player.z)
     player.headUnderWater = headInLiquid(world, player.x, player.y, player.z)
-    player.headUnderLava = (world.getBlock(Math.floor(player.x), Math.floor(player.y + EYE_HEIGHT), Math.floor(player.z)) ?? BLOCKS.AIR) === BLOCKS.LAVA
 
     // 前进方向（水平）
     const sinY = Math.sin(player.yaw)
