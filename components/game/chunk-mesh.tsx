@@ -14,35 +14,6 @@ interface Props {
   rev: number
 }
 
-// 自定义着色器：采样纹理图集 × AO 明暗系数
-const vertexShader = `
-  attribute float ao;
-  varying vec2 vUv;
-  varying float vAo;
-  varying vec3 vNormal;
-  void main() {
-    vUv = uv;
-    vAo = ao;
-    vNormal = normal;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`
-
-const fragmentShader = `
-  uniform sampler2D atlas;
-  uniform vec3 lightDir;
-  varying vec2 vUv;
-  varying float vAo;
-  varying vec3 vNormal;
-  void main() {
-    vec4 tex = texture2D(atlas, vUv);
-    if (tex.a < 0.5) discard;
-    float ndl = max(0.4, dot(normalize(vNormal), normalize(lightDir)));
-    vec3 col = tex.rgb * vAo * ndl;
-    gl_FragColor = vec4(col, tex.a);
-  }
-`
-
 export function ChunkMesh({ world, cx, cz, rev }: Props) {
   const waterRef = useRef<THREE.MeshLambertMaterial>(null)
   const lavaRef = useRef<THREE.MeshLambertMaterial>(null)
@@ -73,14 +44,9 @@ export function ChunkMesh({ world, cx, cz, rev }: Props) {
   })
 
   const opaqueMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      uniforms: {
-        atlas: { value: atlas },
-        lightDir: { value: new THREE.Vector3(0.5, 1.0, 0.3) },
-      },
-      vertexShader,
-      fragmentShader,
-    })
+    const material = new THREE.MeshLambertMaterial({ map: atlas })
+    material.shadowSide = THREE.DoubleSide
+    return material
   }, [atlas])
 
   return (
