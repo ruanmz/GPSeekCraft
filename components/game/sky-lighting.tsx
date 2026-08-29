@@ -37,6 +37,12 @@ export function SkyLighting() {
     const sunX = Math.cos(ang)
     const sunZ = 0.3
 
+    // 先计算昼夜亮度，再交给太阳/月光和环境光使用。
+    const dayness = THREE.MathUtils.smoothstep(sunY, -0.2, 0.35)
+    const nightness = 1 - dayness
+    const brightness = 0.18 + dayness * 0.82
+    const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3)
+
     if (sunRef.current) {
       sunRef.current.position.set(sunX * 100, 100 + sunY * 100, sunZ * 100)
       sunRef.current.target.position.set(0, 0, 0)
@@ -49,10 +55,6 @@ export function SkyLighting() {
     }
 
     // 亮度系统：以太阳高度计算昼夜亮度，并保留月光/洞穴的最低可见度。
-    const dayness = THREE.MathUtils.smoothstep(sunY, -0.2, 0.35)
-    const nightness = 1 - dayness
-    const brightness = 0.18 + dayness * 0.82
-    const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3) // 接近地平线时的日出日落
 
     if (ambientRef.current) {
       ambientRef.current.intensity = 0.12 + brightness * 0.32
