@@ -52,7 +52,7 @@ export function ChunkMesh({ world, cx, cz, rev }: Props) {
   return (
     <group>
       {geos.opaque && (
-        <mesh geometry={geos.opaque} castShadow receiveShadow material={opaqueMaterial} />
+        <mesh geometry={geos.opaque} receiveShadow material={opaqueMaterial} />
       )}
       {geos.water && (
         <mesh geometry={geos.water} receiveShadow>
