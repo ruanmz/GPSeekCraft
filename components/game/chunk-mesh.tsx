@@ -52,10 +52,10 @@ export function ChunkMesh({ world, cx, cz, rev }: Props) {
   return (
     <group>
       {geos.opaque && (
-        <mesh geometry={geos.opaque} frustumCulled={false} castShadow receiveShadow material={opaqueMaterial} />
+        <mesh geometry={geos.opaque} castShadow receiveShadow material={opaqueMaterial} />
       )}
       {geos.water && (
-        <mesh geometry={geos.water} frustumCulled={false} receiveShadow>
+        <mesh geometry={geos.water} receiveShadow>
           <meshLambertMaterial
             ref={waterRef}
             map={atlas}
@@ -66,7 +66,7 @@ export function ChunkMesh({ world, cx, cz, rev }: Props) {
         </mesh>
       )}
       {geos.lava && (
-        <mesh geometry={geos.lava} frustumCulled={false} castShadow receiveShadow>
+        <mesh geometry={geos.lava} castShadow receiveShadow>
           <meshLambertMaterial
             ref={lavaRef}
             map={atlas}

@@ -38,7 +38,7 @@ export function GameScene() {
       onCreated={({ gl }) => {
         gl.setClearColor("#87ceeb")
         gl.shadowMap.enabled = true
-        gl.shadowMap.type = THREE.PCFSoftShadowMap
+        gl.shadowMap.type = THREE.PCFShadowMap
         gl.shadowMap.autoUpdate = true
       }}
     >
