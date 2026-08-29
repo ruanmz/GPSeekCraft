@@ -41,26 +41,29 @@ export function SkyLighting() {
       sunRef.current.position.set(sunX * 100, 100 + sunY * 100, sunZ * 100)
       sunRef.current.target.position.set(0, 0, 0)
       sunRef.current.target.updateMatrixWorld()
-      sunRef.current.intensity = Math.max(0, sunY) * 0.95 + 0.02
+      sunRef.current.intensity = Math.max(0, sunY) * 1.05 * brightness + 0.01
     }
     if (moonRef.current) {
       moonRef.current.position.set(-sunX * 100, -sunY * 100, -sunZ * 100)
-      moonRef.current.intensity = Math.max(0, -sunY) * 0.25
+      moonRef.current.intensity = Math.max(0, -sunY) * 0.32 * nightness + 0.015
     }
 
-    // 昼夜强度 0..1
-    const dayness = THREE.MathUtils.clamp(sunY * 1.5 + 0.35, 0, 1)
+    // 亮度系统：以太阳高度计算昼夜亮度，并保留月光/洞穴的最低可见度。
+    const dayness = THREE.MathUtils.smoothstep(sunY, -0.2, 0.35)
+    const nightness = 1 - dayness
+    const brightness = 0.18 + dayness * 0.82
     const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3) // 接近地平线时的日出日落
 
     if (ambientRef.current) {
-      ambientRef.current.intensity = 0.08 + dayness * 0.22
+      ambientRef.current.intensity = 0.12 + brightness * 0.32
     }
     if (hemiRef.current) {
-      hemiRef.current.intensity = 0.08 + dayness * 0.18
+      hemiRef.current.intensity = 0.1 + brightness * 0.28
     }
 
     // 天空/雾颜色
     const base = new THREE.Color().copy(nightColor).lerp(dayColor, dayness)
+    base.multiplyScalar(0.72 + brightness * 0.28)
     if (sunY > -0.25 && sunY < 0.35) {
       base.lerp(sunsetColor, horizonness * 0.55)
     }
