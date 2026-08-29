@@ -23,4 +23,4 @@ export const worldEvents = new Emitter()
 export const EV_CHUNK_DIRTY = "chunkDirty" // payload: string[] 区块 key
 export const EV_TELEPORT = "teleport" // payload: {x,y,z}
 export const EV_BLOCK_CHANGE = "blockChange" // payload: {x,y,z,id,prev}
-export const EV_ITEM_DROP = "itemDrop" // payload: {id,x,y,z}
+export const EV_ITEM_DROP = "itemDrop" // payload: {id,x,y,z,fromPlayer?}

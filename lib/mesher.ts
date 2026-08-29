@@ -36,10 +36,9 @@ export interface ChunkGeometries {
 // 逐面 AO 明暗系数（替代旧的 vertex-color tint）
 function faceShade(block: BlockId, faceIndex: number, shade: number, wx: number, wy: number, wz: number): number {
   if (isLiquid(block)) return shade
-  const h = (wx * 73856093 ^ wy * 19349663 ^ wz * 83492791 ^ faceIndex * 2654435761) >>> 0
-  const rnd = (h % 1000) / 1000
+  // 不对每个坐标随机染色：随机明暗会在远处形成规则列和分层，且会被阳光误认为阴影。
   const isOre = (block >= 16 && block <= 19) || (block >= 28 && block <= 31)
-  const tint = isOre ? 0.88 + rnd * 0.22 : 0.92 + rnd * 0.12
+  const tint = isOre ? 0.96 : 1
   return Math.max(0, Math.min(1, shade * tint))
 }
 

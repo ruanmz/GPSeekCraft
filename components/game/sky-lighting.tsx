@@ -4,8 +4,6 @@ import { useRef } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { useGame } from "@/lib/store"
-import { player } from "@/lib/player-ref"
-
 const DAY_LENGTH = 1200 // 一整天 1200 秒（20 分钟）
 
 const nightColor = new THREE.Color("#0a1330")
@@ -39,29 +37,35 @@ export function SkyLighting() {
     const sunX = Math.cos(ang)
     const sunZ = 0.3
 
+    // 先计算昼夜亮度，再交给太阳/月光和环境光使用。
+    const dayness = THREE.MathUtils.smoothstep(sunY, -0.2, 0.35)
+    const nightness = 1 - dayness
+    const brightness = 0.18 + dayness * 0.82
+    const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3)
+
     if (sunRef.current) {
-      sunRef.current.position.set(player.x + sunX * 100, player.y + sunY * 100, player.z + sunZ * 100)
-      sunRef.current.target.position.set(player.x, player.y, player.z)
-      sunRef.current.intensity = Math.max(0, sunY) * 0.95 + 0.02
+      sunRef.current.position.set(sunX * 100, 100 + sunY * 100, sunZ * 100)
+      sunRef.current.target.position.set(0, 0, 0)
+      sunRef.current.target.updateMatrixWorld()
+      sunRef.current.intensity = Math.max(0, sunY) * 1.05 * brightness + 0.01
     }
     if (moonRef.current) {
       moonRef.current.position.set(-sunX * 100, -sunY * 100, -sunZ * 100)
-      moonRef.current.intensity = Math.max(0, -sunY) * 0.25
+      moonRef.current.intensity = Math.max(0, -sunY) * 0.32 * nightness + 0.015
     }
 
-    // 昼夜强度 0..1
-    const dayness = THREE.MathUtils.clamp(sunY * 1.5 + 0.35, 0, 1)
-    const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3) // 接近地平线时的日出日落
+    // 亮度系统：以太阳高度计算昼夜亮度，并保留月光/洞穴的最低可见度。
 
     if (ambientRef.current) {
-      ambientRef.current.intensity = 0.08 + dayness * 0.22
+      ambientRef.current.intensity = 0.12 + brightness * 0.32
     }
     if (hemiRef.current) {
-      hemiRef.current.intensity = 0.08 + dayness * 0.18
+      hemiRef.current.intensity = 0.1 + brightness * 0.28
     }
 
     // 天空/雾颜色
     const base = new THREE.Color().copy(nightColor).lerp(dayColor, dayness)
+    base.multiplyScalar(0.72 + brightness * 0.28)
     if (sunY > -0.25 && sunY < 0.35) {
       base.lerp(sunsetColor, horizonness * 0.55)
     }
@@ -80,16 +84,16 @@ export function SkyLighting() {
         castShadow
         intensity={1}
         color="#fff3d6"
-        shadow-mapSize-width={4096}
-        shadow-mapSize-height={4096}
-        shadow-camera-near={1}
-        shadow-camera-far={140}
-        shadow-camera-left={-42}
-        shadow-camera-right={42}
-        shadow-camera-top={42}
-        shadow-camera-bottom={-42}
-        shadow-bias={-0.00035}
-        shadow-normalBias={0.025}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={2}
+        shadow-camera-far={120}
+        shadow-camera-left={-48}
+        shadow-camera-right={48}
+        shadow-camera-top={48}
+        shadow-camera-bottom={-48}
+        shadow-bias={-0.0001}
+        shadow-normalBias={0.012}
       />
       <directionalLight ref={moonRef} intensity={0.15} color="#8fa8d8" />
     </>

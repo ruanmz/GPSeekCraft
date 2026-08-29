@@ -143,9 +143,13 @@ export function getAtlasTexture(): THREE.CanvasTexture {
 
   atlasTexture = new THREE.CanvasTexture(canvas)
   atlasTexture.magFilter = THREE.NearestFilter
-  atlasTexture.minFilter = THREE.LinearMipmapLinearFilter
+  // 像素图集不能使用 mipmap：低分辨率远景会混合相邻 tile，导致草顶采样成黄色并产生接缝。
+  atlasTexture.minFilter = THREE.LinearFilter
+  atlasTexture.magFilter = THREE.NearestFilter
+  atlasTexture.wrapS = THREE.ClampToEdgeWrapping
+  atlasTexture.wrapT = THREE.ClampToEdgeWrapping
   atlasTexture.colorSpace = THREE.SRGBColorSpace
-  atlasTexture.generateMipmaps = true
+  atlasTexture.generateMipmaps = false
   return atlasTexture
 }
 
