@@ -261,8 +261,8 @@ function McHealthBar({ health, maxHealth = 20 }: { health: number; maxHealth?: n
         <clipPath id={`heart-left-${i}`}><rect x="0" y="0" width="6.5" height="12" /></clipPath>
         {leftFull && <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#d42a2a" clipPath={`url(#heart-left-${i})`} />}
         {rightFull && <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#e83c3c" />}
-        {leftFull && <rect x={2} y={3} width={1} height={1} fill="#ffb4b4" />}
-        {rightFull && <rect x={7} y={3} width={1} height={1} fill="#ffc6c6" />}
+        {leftFull && <path d="M1 3 H3 V2 H5 V5 H1 Z" fill="#ef6b6b" />}
+        {rightFull && <path d="M7 3 H9 V2 H11 V5 H7 Z" fill="#ef7777" />}
       </g>
     )
   })

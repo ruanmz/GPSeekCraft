@@ -61,6 +61,7 @@ type Drop = {
   bouncing: boolean
   absorbing: boolean
   absorbT: number
+  pickupDelay: number
 }
 
 export function ItemDrops() {
@@ -91,7 +92,7 @@ export function ItemDrops() {
     }
   }
 
-  const spawnDrop = (item: { id: ItemId; x: number; y: number; z: number; count?: number; vx?: number; vy?: number; vz?: number }) => {
+  const spawnDrop = (item: { id: ItemId; x: number; y: number; z: number; count?: number; vx?: number; vy?: number; vz?: number; fromPlayer?: boolean }) => {
     const key = nextKey.current++
     const drop: Drop = {
       key,
@@ -110,6 +111,7 @@ export function ItemDrops() {
       bouncing: true,
       absorbing: false,
       absorbT: 0,
+      pickupDelay: item.fromPlayer ? PICKUP_COOLDOWN : 0,
     }
     dropsRef.current.push(drop)
     const mat = getMaterial(item.id, getItem(item.id).color)
@@ -245,7 +247,7 @@ export function ItemDrops() {
       const dx = playerX - drop.x
       const dy = playerY - drop.y
       const dz = playerZ - drop.z
-      if (drop.age >= PICKUP_COOLDOWN && dx * dx + dy * dy + dz * dz <= PICK_R2) {
+      if (drop.age >= drop.pickupDelay && dx * dx + dy * dy + dz * dz <= PICK_R2) {
         drop.absorbing = true
         drop.absorbT = 0
         drop.ox = drop.x

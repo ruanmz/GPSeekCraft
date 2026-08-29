@@ -267,6 +267,7 @@ export const useGame = create<GameState>((set, get) => ({
       worldEvents.emit(EV_ITEM_DROP, {
         id: slot.id,
         count: 1,
+        fromPlayer: true,
         x: originX + jitterX,
         y: originY + jitterY,
         z: originZ + jitterZ,
