@@ -1,7 +1,7 @@
 // 区块网格构建：面剔除 + 逐面明暗 + UV 纹理采样，输出不透明 / 水 / 液态岩浆三类几何
 import * as THREE from "three"
 import { CHUNK_SIZE, WORLD_HEIGHT, chunkIndex } from "./worldgen"
-import { BLOCKS, type BlockId, getBlock, isTransparent, isLiquid } from "./blocks"
+import { BLOCKS, type BlockId, getBlock, isSolid, isTransparent, isLiquid } from "./blocks"
 import { getFaceUV } from "./texture-atlas"
 import type { World } from "./world"
 
@@ -33,13 +33,77 @@ export interface ChunkGeometries {
   lava: THREE.BufferGeometry | null
 }
 
-// 逐面 AO 明暗系数（替代旧的 vertex-color tint）
-function faceShade(block: BlockId, faceIndex: number, shade: number, wx: number, wy: number, wz: number): number {
-  if (isLiquid(block)) return shade
-  // 不对每个坐标随机染色：随机明暗会在远处形成规则列和分层，且会被阳光误认为阴影。
+// 逐面 AO 明暗系数：结合面方向基色 + 该面 4 个角落周围的固体邻居数（经典 voxel AO）
+// 再乘 skyExposure：头顶固体/液体越多，面越暗（让洞穴/被盖住的地方变暗）
+function faceShade(
+  world: World,
+  block: BlockId,
+  faceIndex: number,
+  face: FaceDef,
+  wx: number,
+  wy: number,
+  wz: number,
+  baseShade: number,
+): number {
+  if (isLiquid(block)) return baseShade
+
+  const sky = world.skyExposure(wx, wy, wz)
+
+  // 3x3 邻域角落 AO：对该面的"平面坐标系"采样 4 个对角位置，数固体邻居
+  // face.dir 是面法线；我们构造一个切平面局部坐标系（s, t），然后在 (wx + offsetX, wy + offsetY, wz + offsetZ) 取 3x3 四角
+  let axis: "x" | "y" | "z" = "y"
+  const d = face.dir
+  if (d[0] !== 0) axis = "x"
+  else if (d[1] !== 0) axis = "y"
+  else axis = "z"
+
+  // 生成该面 4 个"角落外侧"邻居坐标（相对方块中心向外的 3x3）
+  // 经典 voxel 方案：一个面的四个 corner 各看 3 个邻居；简单点这里只数 4 个对角共面的 1 格外侧邻居有没有固体，每有一个扣 0.06
+  let cornerOcclude = 0
+  const sA = axis === "x" ? 1 : 0
+  const sB = axis === "z" ? 1 : 0
+  const sC = axis === "y" ? 1 : 0
+  // s 轴 = 非法线第一轴（x→y；y→x；z→x）
+  // t 轴 = 非法线第二轴（x→z；y→z；z→y）
+  const AXIS_S_T: Record<"x" | "y" | "z", { s: "x" | "y" | "z"; t: "x" | "y" | "z" }> = {
+    x: { s: "y", t: "z" },
+    y: { s: "x", t: "z" },
+    z: { s: "x", t: "y" },
+  }
+  const sAxis = AXIS_S_T[axis].s
+  const tAxis = AXIS_S_T[axis].t
+  const addVec = (dx: number, dy: number, dz: number): [number, number, number] => [wx + dx, wy + dy, wz + dz]
+  const offsets: [number, number, number][] = []
+  for (const sDir of [-1, 1]) {
+    for (const tDir of [-1, 1]) {
+      let ox = d[0]
+      let oy = d[1]
+      let oz = d[2]
+      if (sAxis === "x") ox += sDir
+      else if (sAxis === "y") oy += sDir
+      else oz += sDir
+      if (tAxis === "x") ox += tDir
+      else if (tAxis === "y") oy += tDir
+      else oz += tDir
+      offsets.push([ox, oy, oz])
+    }
+  }
+  for (const [ox, oy, oz] of offsets) {
+    const nb = world.getBlock(wx + ox, wy + oy, wz + oz)
+    if (isSolid(nb)) cornerOcclude++
+  }
+  void sA; void sB; void sC; void addVec
+
+  // cornerOcclude 最多 4，每个 -0.06，共 -0.24
+  const cornerAO = Math.max(0.76, 1 - cornerOcclude * 0.06)
+
+  // sky 完全盖住（0）时整体再 × 0.55 → 极限 0.55 × baseShade
+  const skyMul = 0.55 + 0.45 * sky
+
   const isOre = (block >= 16 && block <= 19) || (block >= 28 && block <= 31)
-  const tint = isOre ? 0.96 : 1
-  return Math.max(0, Math.min(1, shade * tint))
+  const tint = isOre ? 0.96 : 1.0
+
+  return Math.max(0.1, Math.min(1, baseShade * cornerAO * skyMul * tint))
 }
 
 // 判断是否需要绘制该面（邻居透明且不是同种液体）
@@ -118,11 +182,17 @@ export function buildChunkGeometry(world: World, cx: number, cz: number): ChunkG
           const wx = baseX + x
           const wy = y
           const wz = baseZ + z
-          const ao = faceShade(block, f, face.shade, wx, wy, wz)
-          const uvs = getFaceUV(block, f)
+          const ao = faceShade(world, block, f, face, wx, wy, wz, face.shade)
+          // 液体用独立可平铺贴图（RepeatWrapping），每个面就是整张 tile 的 0..1；
+          // 固体方块仍用图集 UV。
+          const uvs = isLiquid(block)
+            ? ([[0, 0], [0, 1], [1, 1], [1, 0]] as [number, number][])
+            : getFaceUV(block, f)
           for (let ci = 0; ci < 4; ci++) {
             const corner = face.corners[ci]
-            target.pos.push(wx + corner[0], y + corner[1] - (corner[1] === 1 ? liquidTopDrop : 0), baseZ + z + corner[2])
+            // 顶点用区块局部坐标（0..16），mesh 通过 position 放到世界位置 → 每个 chunk 有正确
+            // bounding sphere，可开启视锥剔除，转视角时只渲染视野内区块，大幅降低 GPU 负载。
+            target.pos.push(x + corner[0], y + corner[1] - (corner[1] === 1 ? liquidTopDrop : 0), z + corner[2])
             target.norm.push(face.dir[0], face.dir[1], face.dir[2])
             target.uv.push(uvs[ci][0], uvs[ci][1])
             target.ao.push(ao)

@@ -383,6 +383,30 @@ function defaultHighpassHzFor(name: SfxName): number {
   }
 }
 
+// 播放 /assets/click.mp3（Minecraft 样式按钮点击音）
+let uiClickBuf: AudioBuffer | null = null
+export async function playUiClick(): Promise<void> {
+  const ctx = getAudioCtx()
+  if (!ctx || !sfxGain) return
+  ensureAudioResumed()
+  try {
+    if (!uiClickBuf) {
+      const res = await fetch("/assets/click.mp3")
+      const arr = await res.arrayBuffer()
+      uiClickBuf = await ctx.decodeAudioData(arr)
+    }
+    const src = ctx.createBufferSource()
+    src.buffer = uiClickBuf
+    const g = ctx.createGain()
+    g.gain.value = 0.9
+    src.connect(g)
+    g.connect(sfxGain)
+    src.start()
+  } catch {
+    /* 文件加载失败则静默 */
+  }
+}
+
 export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
   const ctx = getAudioCtx()
   if (!ctx || !sfxGain) return

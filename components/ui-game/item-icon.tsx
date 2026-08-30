@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { getItem } from "@/lib/items"
+import { getItem, ITEMS } from "@/lib/items"
 import { getBlock, BLOCKS, BLOCK_DEFS } from "@/lib/blocks"
+import { paintWaterTile, paintLavaTile } from "@/lib/texture-atlas"
 
 function rgb(value: [number, number, number], alpha = 1) {
   const r = Math.round(value[0] * 255)
@@ -100,6 +101,21 @@ function ToolSvg({ toolType, color }: { toolType: string; color: string }) {
   }
 
   return null
+}
+
+function StickIcon({ color }: { color: string }) {
+  const hl = lighten(color, 0.18)
+  const sh = darken(color, 0.16)
+  return (
+    <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden shapeRendering="crispEdges">
+      {/* 斜放的细圆木棍（左上→右下） */}
+      <g transform="rotate(45 50 50)">
+        <rect x="44" y="4" width="12" height="92" rx="5" fill={color} stroke="#000" strokeWidth="3" />
+        <rect x="46" y="10" width="3" height="80" rx="1.5" fill={hl} />
+        <rect x="53" y="10" width="3" height="80" rx="1.5" fill={sh} />
+      </g>
+    </svg>
+  )
 }
 
 function FoodIcon({ color, isApple }: { color: string; isApple: boolean }) {
@@ -243,13 +259,12 @@ function drawFaceTexture(ctx: CanvasRenderingContext2D, def: BlockDef, face: "to
   if (k === "SAND" || k === "GRAVEL" || k === "SANDSTONE") {
     for (let i = 0; i < 35; i++) { ctx.fillStyle = rnd() > 0.5 ? `rgba(255,255,255,0.15)` : `rgba(0,0,0,0.1)`; ctx.fillRect(Math.floor(rnd()*PX), Math.floor(rnd()*PX), 1, 1) }
   }
-  // 水波纹
+  // 水/岩浆：与 3D 世界同款液体贴图（低噪声波纹），不再像羊毛
   if (k === "WATER") {
-    ctx.strokeStyle = `rgba(120,180,255,0.4)`; ctx.lineWidth = 1
-    for (let y = 2; y < PX; y += 5) { ctx.beginPath(); ctx.moveTo(0, y); for (let x = 0; x < PX; x += 4) ctx.lineTo(x + 2, y + (x % 8 === 0 ? 1 : -1)); ctx.stroke() }
+    paintWaterTile(ctx, PX, rnd)
   }
   // 岩浆气泡
-  if (k === "LAVA") { for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,200,50,0.6)`; ctx.fillRect(Math.floor(rnd()*14), Math.floor(rnd()*14), 2, 2) } }
+  if (k === "LAVA") { paintLavaTile(ctx, PX, rnd) }
   // 树叶透光孔
   if (/LEAVES/.test(k)) {
     for (let i = 0; i < 12; i++) { ctx.fillStyle = `rgba(0,0,0,0.25)`; ctx.fillRect(Math.floor(rnd()*PX), Math.floor(rnd()*PX), 1, 1) }
@@ -358,6 +373,19 @@ export function ItemIcon({ id, size = 32 }: { id: number; size?: number }) {
         >
           <span style={{ width: size * 0.82, height: size * 0.82, display: "block" }}>
             <FoodIcon color={item.color} isApple={isApple} />
+          </span>
+        </span>
+      )
+    }
+    if (id === ITEMS.STICK) {
+      return (
+        <span
+          style={{ width: size, height: size, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+          aria-label={item.name}
+          title={item.name}
+        >
+          <span style={{ width: size, height: size, display: "block" }}>
+            <StickIcon color={item.color} />
           </span>
         </span>
       )

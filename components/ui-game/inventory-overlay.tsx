@@ -5,6 +5,36 @@ import { ItemIcon } from "./item-icon"
 import { useGame, type SlotArea } from "@/lib/store"
 import type { ItemStack } from "@/lib/save"
 
+// 手机端长按手势：按住不动 450ms 视为右键点击（用于拆分堆叠）
+function touchRightClick(fn: () => void) {
+  return (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    const sx = t.clientX, sy = t.clientY
+    let cancelled = false
+    let fired = false
+    const move = (ev: TouchEvent) => {
+      const c = ev.touches[0]
+      if (Math.abs(c.clientX - sx) > 14 || Math.abs(c.clientY - sy) > 14) cancelled = true
+    }
+    const up = () => {
+      if (!cancelled && !fired) { fired = true; fn() }
+      cleanup()
+    }
+    const cleanup = () => {
+      document.removeEventListener("touchmove", move)
+      document.removeEventListener("touchend", up)
+      document.removeEventListener("touchcancel", up)
+      clearTimeout(timer)
+    }
+    const timer = setTimeout(() => {
+      if (!cancelled && !fired) { fired = true; fn(); cleanup() }
+    }, 450)
+    document.addEventListener("touchmove", move, { passive: true })
+    document.addEventListener("touchend", up, { passive: true })
+    document.addEventListener("touchcancel", up, { passive: true })
+  }
+}
+
 function Slot({
   stack,
   area,
@@ -30,6 +60,7 @@ function Slot({
         clickSlot(area, index, button, e.shiftKey)
       }}
       onContextMenu={(e) => e.preventDefault()}
+      onTouchStart={touchRightClick(() => clickSlot(area, index, "right", false))}
     >
       {stack && (
         <>
@@ -60,6 +91,7 @@ function CraftResultSlot({
         clickSlot("craftResult", 0, button, e.shiftKey)
       }}
       onContextMenu={(e) => e.preventDefault()}
+      onTouchStart={touchRightClick(() => clickSlot("craftResult", 0, "right", false))}
     >
       {stack && (
         <>
@@ -208,7 +240,10 @@ export function InventoryOverlay() {
                 gap: 2,
               }}
             >
-              {Array.from({ length: isWorkbench ? 9 : 4 }, (_, i) => i).map((i) => (
+              {(isWorkbench
+                ? Array.from({ length: 9 }, (_, i) => i)
+                : [0, 1, 3, 4] // 2×2 随身合成对应 3×3 网格的左上 2×2 角
+              ).map((i) => (
                 <Slot
                   key={i}
                   area="craft"

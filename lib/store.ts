@@ -3,13 +3,15 @@
 import { create } from "zustand"
 import { getItem, creativeItems, type ItemId } from "./items"
 import type { ItemStack } from "./save"
+import { getSave, upsertSave } from "./save"
 import { World } from "./world"
 import { matchRecipe, SMELTING, fuelBurnTime, smeltResult } from "./crafting"
 import { worldEvents, EV_ITEM_DROP, EV_TELEPORT } from "@/lib/emitter"
 import { player } from "@/lib/player-ref"
+import { loadGlobalSettings, saveGlobalSettings, type Settings } from "./settings"
 
-export type Screen = "menu" | "playing" | "settings" | "credits"
-export type Overlay = null | "pause" | "inventory" | "crafting" | "furnace" | "dead"
+export type Screen = "menu" | "loading" | "playing" | "settings" | "credits"
+export type Overlay = null | "pause" | "inventory" | "crafting" | "furnace" | "dead" | "settings"
 export type GameMode = "survival" | "creative"
 export type SlotArea = "hotbar" | "inventory" | "craft" | "craftResult"
 
@@ -22,18 +24,15 @@ export interface FurnaceState {
   burnMax: number
 }
 
-interface Settings {
-  renderDistance: number
-  mouseSensitivity: number
-  fov: number
-}
-
 interface GameState {
   screen: Screen
+  loadProgress: number
   overlay: Overlay
   gameMode: GameMode
   seed: number
   world: World | null
+  worldName: string
+  saveId: string | null
 
   health: number
   hunger: number
@@ -62,10 +61,15 @@ interface GameState {
 
   // actions
   setScreen: (s: Screen) => void
+  setLoadProgress: (n: number) => void
+  finishLoad: () => void
   setOverlay: (o: Overlay) => void
   setGameMode: (m: GameMode) => void
   toggleGameMode: () => void
   initWorld: (seed: number, gameMode: GameMode) => void
+  createWorld: (name: string, seed: number, gameMode: GameMode) => string
+  loadSaveById: (id: string) => boolean
+  saveCurrentGame: () => void
   setWorld: (w: World) => void
   selectHotbar: (i: number) => void
   scrollHotbar: (dir: number) => void
@@ -75,7 +79,7 @@ interface GameState {
   getSelected: () => ItemStack | null
   setHealth: (h: number) => void
   setHunger: (h: number) => void
-  damage: (amount: number) => void
+  damage: (amount: number, bypassCreative?: boolean) => void
   heal: (amount: number) => void
   setFlying: (f: boolean) => void
   toggleThirdPerson: () => void
@@ -121,10 +125,13 @@ function cloneStack(s: ItemStack | null): ItemStack | null {
 
 export const useGame = create<GameState>((set, get) => ({
   screen: "menu",
+  loadProgress: 0,
   overlay: null,
   gameMode: "survival",
   seed: 0,
   world: null,
+  worldName: "",
+  saveId: null,
 
   health: 20,
   hunger: 20,
@@ -144,11 +151,13 @@ export const useGame = create<GameState>((set, get) => ({
   worldTime: 0.3,
 
   furnace: { ...initialFurnace },
-  settings: { renderDistance: 4, mouseSensitivity: 1, fov: 75 },
+  settings: loadGlobalSettings(),
   toast: null,
   _toastTimer: null,
 
   setScreen: (s) => set({ screen: s }),
+  setLoadProgress: (n) => set({ loadProgress: n }),
+  finishLoad: () => set({ screen: "playing" }),
   setOverlay: (o) => set({ overlay: o }),
   setGameMode: (m) => set({ gameMode: m, flying: m === "creative" ? get().flying : false }),
   toggleGameMode: () =>
@@ -179,6 +188,104 @@ export const useGame = create<GameState>((set, get) => ({
       overlay: null,
     })
   },
+
+  createWorld: (name, seed, gameMode) => {
+    const world = new World(seed)
+    const creativeStacks = gameMode === "creative"
+      ? creativeItems().map((id) => ({ id, count: 64 } as ItemStack))
+      : []
+    const saveId = `w_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`
+    set({
+      world,
+      seed,
+      gameMode,
+      worldName: name.trim() || "新世界",
+      saveId,
+      health: 20,
+      hunger: 20,
+      hotbar: gameMode === "creative" ? [...creativeStacks.slice(0, 9)] : emptySlots(9),
+      inventory: gameMode === "creative" ? [...creativeStacks.slice(9, 36), ...emptySlots(Math.max(0, 27 - creativeStacks.slice(9, 36).length))] : emptySlots(27),
+      selectedHotbar: 0,
+      craftGrid: emptySlots(9),
+      craftResult: null,
+      cursor: null,
+      worldTime: 0.3,
+      furnace: { ...initialFurnace },
+      overlay: null,
+      flying: false,
+      thirdPerson: false,
+      spawn: { x: 0, y: 40, z: 0 },
+      screen: "loading",
+      loadProgress: 0,
+    })
+    // 等玩家挂载定位后再落盘，保证存档里第一次就有正确坐标
+    setTimeout(() => {
+      try { get().saveCurrentGame() } catch { /* noop */ }
+    }, 120)
+    return saveId
+  },
+
+  loadSaveById: (id) => {
+    const data = getSave(id)
+    if (!data) return false
+    const world = new World(data.seed, data.edits)
+    set({
+      world,
+      seed: data.seed,
+      gameMode: data.gameMode,
+      worldName: data.name,
+      saveId: data.id,
+      health: data.health ?? 20,
+      hunger: data.hunger ?? 20,
+      hotbar: data.hotbar?.slice() ?? emptySlots(9),
+      inventory: data.inventory?.slice() ?? emptySlots(27),
+      selectedHotbar: 0,
+      spawn: data.spawn ?? { x: 0, y: 40, z: 0 },
+      worldTime: data.worldTime ?? 0.3,
+      craftGrid: emptySlots(9),
+      craftResult: null,
+      cursor: null,
+      furnace: { ...initialFurnace },
+      overlay: null,
+      flying: !!data.flying,
+      thirdPerson: !!data.thirdPerson,
+      screen: "loading",
+      loadProgress: 0,
+    })
+    // PlayerController 会先按 spawn 把玩家放到地面，随后精确传回存档位置
+    const p = data.player ?? { x: 0, y: 40, z: 0 }
+    setTimeout(() => {
+      worldEvents.emit(EV_TELEPORT, { x: p.x, y: p.y, z: p.z })
+      player.yaw = p.yaw ?? 0
+      player.pitch = p.pitch ?? -0.7
+    }, 80)
+    return true
+  },
+
+  saveCurrentGame: () => {
+    const st = get()
+    if (!st.world || !st.saveId) return
+    const prev = getSave(st.saveId)
+    upsertSave({
+      id: st.saveId,
+      name: st.worldName,
+      seed: st.seed,
+      gameMode: st.gameMode,
+      createdAt: prev?.createdAt ?? Date.now(),
+      lastPlayed: Date.now(),
+      player: { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch },
+      health: st.health,
+      hunger: st.hunger,
+      spawn: st.spawn,
+      hotbar: st.hotbar.map((c) => (c ? { id: c.id, count: c.count } : null)),
+      inventory: st.inventory.map((c) => (c ? { id: c.id, count: c.count } : null)),
+      edits: st.world.getEdits(),
+      worldTime: st.worldTime,
+      flying: st.flying,
+      thirdPerson: st.thirdPerson,
+    })
+  },
+
   setWorld: (w) => set({ world: w }),
 
   selectHotbar: (i) => set({ selectedHotbar: Math.max(0, Math.min(8, i)) }),
@@ -291,9 +398,9 @@ export const useGame = create<GameState>((set, get) => ({
 
   setHealth: (h) => set({ health: Math.max(0, Math.min(get().maxHealth, h)) }),
   setHunger: (h) => set({ hunger: Math.max(0, Math.min(20, h)) }),
-  damage: (amount) =>
+  damage: (amount, bypassCreative = false) =>
     set((st) => {
-      if (st.gameMode === "creative") return {}
+      if (!bypassCreative && st.gameMode === "creative") return {}
       const health = Math.max(0, st.health - amount)
       if (health <= 0 && st.overlay !== "dead") {
         return { health: 0, overlay: "dead" }
@@ -324,7 +431,12 @@ export const useGame = create<GameState>((set, get) => ({
   setFurnace: (f) => set((st) => ({ furnace: { ...st.furnace, ...f } })),
   resetFurnace: () => set({ furnace: { ...initialFurnace } }),
 
-  setSettings: (s) => set((st) => ({ settings: { ...st.settings, ...s } })),
+  setSettings: (s) =>
+    set((st) => {
+      const next = { ...st.settings, ...s }
+      saveGlobalSettings(next) // 全局设置：改动即时落盘，不随存档走
+      return { settings: next }
+    }),
 
   showToast: (name) => {
     const id = Date.now() + Math.random()

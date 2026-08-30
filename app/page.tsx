@@ -11,8 +11,11 @@ import { InventoryOverlay } from "@/components/ui-game/inventory-overlay"
 import { FurnaceOverlay } from "@/components/ui-game/furnace-overlay"
 import { ItemToast } from "@/components/ui-game/toast"
 import { UnderwaterOverlay } from "@/components/ui-game/underwater-overlay"
+import { DebugOverlay } from "@/components/ui-game/debug-overlay"
 import { getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
+import { listSaves, deleteSave, type SaveData } from "@/lib/save"
+import { playUiClick } from "@/lib/sound"
 
 function getBlockName(id: number) { return getBlock(id).name }
 function getItemName(id: number) { return getItem(id).name }
@@ -39,36 +42,229 @@ function makeTouchSafeHandlers(pointerFiredRef: React.MutableRefObject<boolean>)
   })
 }
 
+function SettingsPanel({ onBack }: { onBack: () => void }) {
+  const settings = useGame((s) => s.settings)
+  const setSettings = useGame((s) => s.setSettings)
+  const pointerFiredRef = useRef(false)
+  const makeHandlers = makeTouchSafeHandlers(pointerFiredRef)
+
+  return (
+    <section className="mc-menu-panel" aria-label="设置">
+      <h2 className="mc-panel-title">设置</h2>
+      <label className="mc-field">
+        <span>渲染区块：{settings.renderDistance}</span>
+        <input
+          type="range" min={2} max={12} step={1}
+          value={settings.renderDistance}
+          onChange={(e) => setSettings({ renderDistance: Number(e.target.value) })}
+        />
+      </label>
+      <label className="mc-field">
+        <span>模拟距离：{settings.simulationDistance}</span>
+        <input
+          type="range" min={2} max={16} step={1}
+          value={settings.simulationDistance}
+          onChange={(e) => setSettings({ simulationDistance: Number(e.target.value) })}
+        />
+      </label>
+      <button
+        className={`mc-button mc-wide mc-toggle ${settings.shadows ? "is-on" : ""}`}
+        {...makeHandlers(() => setSettings({ shadows: !settings.shadows }))}
+      >
+        阴影：{settings.shadows ? "开" : "关"}
+      </button>
+      <button
+        className={`mc-button mc-wide mc-toggle ${settings.autoJump ? "is-on" : ""}`}
+        {...makeHandlers(() => setSettings({ autoJump: !settings.autoJump }))}
+      >
+        自动跳跃：{settings.autoJump ? "开" : "关"}
+      </button>
+      <button className="mc-button mc-wide" {...makeHandlers(onBack)}>返回</button>
+    </section>
+  )
+}
+
+function LoadingScreen() {
+  const world = useGame((s) => s.world)
+  const loadProgress = useGame((s) => s.loadProgress)
+  const setLoadProgress = useGame((s) => s.setLoadProgress)
+  const finishLoad = useGame((s) => s.finishLoad)
+  const renderDistance = useGame((s) => s.settings.renderDistance)
+  const simulationDistance = useGame((s) => s.settings.simulationDistance)
+
+  useEffect(() => {
+    if (!world) return
+    // 预生成范围：覆盖模拟距离（含渲染距离）。这样进入游戏后玩家移动时几乎不再需要
+    // 逐帧懒生成区块，从根本上消除游玩卡顿。ensureChunk 幂等，重复生成会直接返回。
+    const rd = Math.max(renderDistance, simulationDistance)
+    const jobs: { cx: number; cz: number }[] = []
+    for (let dx = -rd; dx <= rd; dx++)
+      for (let dz = -rd; dz <= rd; dz++)
+        jobs.push({ cx: dx, cz: dz })
+    const total = jobs.length
+    let done = 0
+    let raf = 0
+    const step = () => {
+      // 每帧生成一批，分摊主线程负载，进度条实时反馈
+      const BATCH = 8
+      for (let i = 0; i < BATCH && jobs.length > 0; i++) {
+        const { cx, cz } = jobs.pop()!
+        world.ensureChunk(cx, cz)
+        done++
+      }
+      setLoadProgress(done / total)
+      if (jobs.length > 0) {
+        raf = requestAnimationFrame(step)
+      } else {
+        finishLoad()
+      }
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [world, renderDistance, simulationDistance, setLoadProgress, finishLoad])
+
+  const pct = Math.round(loadProgress * 100)
+  return (
+    <main className="mc-menu">
+      <div className="mc-logo">GPSEEKCRAFT</div>
+      <p className="mc-subtitle">正在生成世界…</p>
+      <div className="load-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <div className="load-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mc-hint">{pct}%</p>
+    </main>
+  )
+}
+
 function Menu() {
-  const initWorld = useGame((s) => s.initWorld)
-  const setScreen = useGame((s) => s.setScreen)
+  const createWorld = useGame((s) => s.createWorld)
+  const loadSaveById = useGame((s) => s.loadSaveById)
+  const [view, setView] = useState<"main" | "create" | "saves" | "settings">("main")
+  const [name, setName] = useState("我的世界")
   const [seed, setSeed] = useState(20260826)
   const [mode, setMode] = useState<GameMode>("survival")
+  const [saves, setSaves] = useState<SaveData[]>([])
+  const [error, setError] = useState("")
+  const [confirmDel, setConfirmDel] = useState<SaveData | null>(null)
 
   const start = () => {
-    try {
-      initWorld(seed, mode)
-    } catch (err) {
-      console.error("[initWorld] failed, still transition to playing screen so error is visible:", err)
+    const list = listSaves()
+    if (list.length > 0) {
+      setSaves(list)
+      setView("saves")
+    } else {
+      setView("create")
     }
-    setScreen("playing")
+  }
+
+  const doCreate = () => {
+    try {
+      createWorld(name, seed, mode)
+      // 进入 loading 状态，由 LoadingScreen 预生成区块后自动进入游戏
+    } catch (err) {
+      setError("创建世界失败，请重试")
+    }
+  }
+
+  const doLoad = (id: string) => {
+    try {
+      if (!loadSaveById(id)) setError("读档失败")
+    } catch (err) {
+      setError("读档失败")
+    }
   }
 
   const pointerFiredRef = useRef(false)
   const makeHandlers = makeTouchSafeHandlers(pointerFiredRef)
 
+  if (view === "settings") {
+    return (
+      <main className="mc-menu">
+        <div className="mc-logo">GPSEEKCRAFT</div>
+        <SettingsPanel onBack={() => { setError(""); setView("main") }} />
+      </main>
+    )
+  }
+
+  if (view === "create") {
+    return (
+      <main className="mc-menu">
+        <div className="mc-logo">GPSEEKCRAFT</div>
+        <section className="mc-menu-panel" aria-label="创建新世界">
+          <h2 className="mc-panel-title">创建新世界</h2>
+          <label className="mc-field">世界名称<input value={name} onChange={(e) => setName(e.target.value)} /></label>
+          <label className="mc-field">种子<input value={seed} onChange={(e) => setSeed(Number(e.target.value) || 0)} /></label>
+          <button className="mc-button mc-wide" {...makeHandlers(() => setMode(mode === "survival" ? "creative" : "survival"))}>
+            {mode === "survival" ? "生存模式" : "创造模式"}
+          </button>
+          {error && <p className="mc-hint" style={{ color: "#ffd27d" }}>{error}</p>}
+          <button className="mc-button mc-wide" {...makeHandlers(doCreate)}>创建并进入世界</button>
+          <button className="mc-button mc-wide" {...makeHandlers(() => { setError(""); setView("main") })}>返回</button>
+        </section>
+      </main>
+    )
+  }
+
+  if (view === "saves") {
+    return (
+      <main className="mc-menu">
+        <div className="mc-logo">GPSEEKCRAFT</div>
+        <section className="mc-menu-panel" aria-label="选择世界">
+          <h2 className="mc-panel-title">选择世界</h2>
+          <div className="mc-save-list">
+            {saves.map((s) => (
+              <div key={s.id} className="mc-save-row">
+                <button
+                  className="mc-button mc-wide mc-save-item"
+                  {...makeHandlers(() => doLoad(s.id))}
+                >
+                  <span>{s.name}</span>
+                  <span className="mc-save-meta">
+                    {s.gameMode === "creative" ? "创造" : "生存"} · {new Date(s.lastPlayed).toLocaleString()}
+                  </span>
+                </button>
+                <button
+                  className="mc-button mc-del"
+                  aria-label={`删除存档 ${s.name}`}
+                  {...makeHandlers(() => setConfirmDel(s))}
+                >✕</button>
+              </div>
+            ))}
+            {saves.length === 0 && <p className="mc-hint">暂无存档</p>}
+          </div>
+          <button className="mc-button mc-wide" {...makeHandlers(() => { setError(""); setView("create") })}>创建新世界</button>
+          <button className="mc-button mc-wide" {...makeHandlers(() => { setError(""); setView("main") })}>返回</button>
+        </section>
+        {confirmDel && (
+          <div className="mc-modal" role="dialog" aria-modal="true" aria-label="删除存档">
+            <div className="mc-modal-box">
+              <h3>删除存档</h3>
+              <p>确定删除存档「{confirmDel.name}」吗？此操作无法撤销。</p>
+              <div className="mc-modal-actions">
+                <button
+                  className="mc-button mc-wide mc-del-confirm"
+                  {...makeHandlers(() => {
+                    deleteSave(confirmDel.id)
+                    setSaves(listSaves())
+                    setConfirmDel(null)
+                  })}
+                >删除</button>
+                <button className="mc-button mc-wide" {...makeHandlers(() => setConfirmDel(null))}>取消</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    )
+  }
+
   return (
     <main className="mc-menu">
-      <div className="mc-logo">VOXELCRAFT</div>
+      <div className="mc-logo">GPSEEKCRAFT</div>
       <p className="mc-subtitle">浏览器体素沙盒</p>
       <section className="mc-menu-panel" aria-label="主菜单">
         <button className="mc-button mc-wide" {...makeHandlers(start)}>开始游戏</button>
-        <div className="mc-row">
-          <label className="mc-field">种子<input value={seed} onChange={(e) => setSeed(Number(e.target.value) || 0)} /></label>
-          <button className="mc-button" {...makeHandlers(() => setMode(mode === "survival" ? "creative" : "survival"))}>
-            {mode === "survival" ? "生存模式" : "创造模式"}
-          </button>
-        </div>
+        <button className="mc-button mc-wide" {...makeHandlers(() => { setError(""); setView("settings") })}>设置</button>
         <p className="mc-hint">WASD 移动 · 空格跳跃 · 左键挖掘 · 右键放置 · E 背包 · ESC 暂停</p>
       </section>
     </main>
@@ -80,6 +276,7 @@ function Game() {
   const setScreen = useGame((s) => s.setScreen)
   const overlay = useGame((s) => s.overlay)
   const setOverlay = useGame((s) => s.setOverlay)
+  const gameMode = useGame((s) => s.gameMode)
   const health = useGame((s) => s.health)
   const hunger = useGame((s) => s.hunger)
   const hotbar = useGame((s) => s.hotbar)
@@ -89,6 +286,15 @@ function Game() {
   const [mobileInfo, setMobileInfo] = useState<{ isMobile: boolean; isTablet: boolean; force: boolean }>({
     isMobile: false, isTablet: false, force: false,
   })
+  // 所有 Minecraft 样式按钮（.mc-button）点击时播放 click.mp3（全局委托，鼠标/触摸皆可）
+  useEffect(() => {
+    const onPointer = (e: PointerEvent) => {
+      const t = e.target as Element | null
+      if (t && t.closest && t.closest(".mc-button")) void playUiClick()
+    }
+    document.addEventListener("pointerdown", onPointer)
+    return () => document.removeEventListener("pointerdown", onPointer)
+  }, [])
   useEffect(() => {
     const update = () => setMobileInfo(detectMobileMode())
     update()
@@ -108,6 +314,18 @@ function Game() {
   const dropSelected = useGame((s) => s.dropSelected)
   const dropSlot = useGame((s) => s.dropSlot)
   const showToast = useGame((s) => s.showToast)
+  const saveCurrentGame = useGame((s) => s.saveCurrentGame)
+  // 自动存档：每 15s 存一次；离开游玩（回菜单）时再存一次
+  useEffect(() => {
+    if (screen !== "playing") return
+    const t = setInterval(() => {
+      try { saveCurrentGame() } catch { /* noop */ }
+    }, 15000)
+    return () => {
+      clearInterval(t)
+      try { saveCurrentGame() } catch { /* noop */ }
+    }
+  }, [screen, saveCurrentGame])
   // 每个 hotbar 槽位的长按定时器 + 长按是否已触发 的 ref，放在顶层（数量固定 9 个，用 useMemo 初始化一次即可）
   const slotLongTimers = useRef<Array<ReturnType<typeof setTimeout> | null>>([null, null, null, null, null, null, null, null, null])
   const slotLongFired = useRef<boolean[]>([false, false, false, false, false, false, false, false, false])
@@ -133,6 +351,7 @@ function Game() {
     return () => window.removeEventListener("keydown", onKey)
   }, [screen, overlay, setOverlay, dropSelected])
 
+  if (screen === "loading") return <LoadingScreen />
   if (screen !== "playing") return <Menu />
   return (
     <main
@@ -142,8 +361,8 @@ function Game() {
       <GameScene />
       <div className={`game-hud ${isMobile ? "is-mobile" : ""}`} aria-live="polite">
         <div className={`bars ${isMobile ? "top-left" : "center"}`}>
-          <McHealthBar health={health} maxHealth={20} />
-          <McHungerBar hunger={hunger} />
+          {gameMode !== "creative" && <McHealthBar health={health} maxHealth={20} />}
+          {gameMode !== "creative" && <McHungerBar hunger={hunger} />}
         </div>
         <div className="crosshair" aria-hidden>
           <span className="crosshair-v" />
@@ -204,7 +423,7 @@ function Game() {
               >
                 {item ? (
                   <>
-                    <div className="slot-icon"><ItemIcon id={item.id} size={isMobile ? (isTablet ? 48 : 40) : 44} /></div>
+                    <div className="slot-icon"><ItemIcon id={item.id} size={isMobile ? (isTablet ? 56 : 40) : 48} /></div>
                     {item.count > 1 && <span className="slot-count">{item.count}</span>}
                   </>
                 ) : null}
@@ -226,115 +445,35 @@ function Game() {
         {isMobile && <MobileControls isTablet={isTablet} />}
         {isMobile && <TouchLookHandler />}
       </div>
-      {overlay === "pause" && <div className="overlay"><h2>游戏菜单</h2><button className="mc-button" onClick={() => setOverlay(null)}>返回游戏</button><button className="mc-button" onClick={() => setScreen("menu")}>返回主菜单</button></div>}
+      {overlay === "pause" && <div className="overlay"><h2>游戏菜单</h2><button className="mc-button" onClick={() => setOverlay(null)}>返回游戏</button><button className="mc-button" onClick={() => setOverlay("settings")}>设置</button><button className="mc-button" onClick={() => setScreen("menu")}>返回主菜单</button></div>}
+      {overlay === "settings" && <div className="overlay"><SettingsPanel onBack={() => setOverlay("pause")} /></div>}
       {overlay === "dead" && <DeathOverlay />}
-      {overlay === "inventory" && <InventoryOverlay />}
+      {(overlay === "inventory" || overlay === "crafting") && <InventoryOverlay />}
       {overlay === "furnace" && <FurnaceOverlay />}
+      <DebugOverlay />
       <UnderwaterOverlay />
       <ItemToast />
     </main>
   )
 }
 
-// Minecraft 风格状态栏：生命使用心形，饥饿使用鸡腿；不复用物品栏的食物图标。
-// 用内��� SVG（10 颗心横向平铺），每��颗分为左半+右半，支持"半颗"着色
+// Minecraft 风格状态栏：直接用整条 PNG 精灵图（20=满血 … 0=空）
 function McHealthBar({ health, maxHealth = 20 }: { health: number; maxHealth?: number }) {
-  const clamped = Math.max(0, Math.min(maxHealth, health))
-  // 总共有 20 个"半心"单位
-  const halfUnits = Math.max(0, Math.min(20, Math.floor(clamped)))
-  const unitW = 13, unitH = 12, gap = 2
-  const count = 10
-  const totalW = count * unitW + (count - 1) * gap
-  const stroke = "#1a1008"
-  // 生成 10 颗心的 SVG path
-  const hearts = Array.from({ length: count }).map((_, i) => {
-    // 这颗心前半是否满血？后半是否满血？
-    const idx = i * 2
-    const leftFull = halfUnits >= idx + 1
-    const rightFull = halfUnits >= idx + 2
-    const ox = i * (unitW + gap)
-    const oy = 0
-    // 心形路径（13×12，纯像素感）
-    return (
-      <g key={`h-${i}`} transform={`translate(${ox} ${oy})`}>
-        <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#3a1818" stroke={stroke} strokeWidth={1} />
-        <clipPath id={`heart-left-${i}`}><rect x="0" y="0" width="6.5" height="12" /></clipPath>
-        {leftFull && <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#d42a2a" clipPath={`url(#heart-left-${i})`} />}
-        {rightFull && <path d="M0 3 H2 V1 H5 V2 H6 V1 H9 V2 H11 V3 H13 V7 L10 10 H3 L0 7 Z" fill="#e83c3c" />}
-        {leftFull && <path d="M1 3 H3 V2 H5 V5 H1 Z" fill="#ef6b6b" />}
-        {rightFull && <path d="M7 3 H9 V2 H11 V5 H7 Z" fill="#ef7777" />}
-      </g>
-    )
-  })
+  const clamped = Math.max(0, Math.min(maxHealth, Math.round(health)))
+  const src = `/assets/Healthbar/${clamped}.png`
   return (
-    <div className="mc-bar mc-bar-health" aria-label={`生命 ${Math.floor(clamped)}/${maxHealth}`}>
-      <svg
-        viewBox={`0 0 ${totalW} ${unitH}`}
-        width={totalW * 2}
-        height={unitH * 2}
-        shapeRendering="crispEdges"
-        style={{ imageRendering: "pixelated", display: "block" }}
-      >
-        {hearts}
-      </svg>
+    <div className="mc-bar mc-bar-health" aria-label={`生命 ${clamped}/${maxHealth}`}>
+      <img src={src} alt="" width={267} height={30} draggable={false} className="mc-bar-img" />
     </div>
   )
 }
 
+// 饥饿条：目前没有饥饿减少机制，只准备了满（20）的一张图
 function McHungerBar({ hunger, maxHunger = 20 }: { hunger: number; maxHunger?: number }) {
-  const clamped = Math.max(0, Math.min(maxHunger, hunger))
-  const halfUnits = Math.round((clamped / maxHunger) * 20)
-  const unitW = 13, unitH = 12, gap = 2
-  const count = 10
-  const totalW = count * unitW + (count - 1) * gap
-  const stroke = "#140b02"
-  const diamonds = Array.from({ length: count }).map((_, i) => {
-    const idx = i * 2
-    const leftFull = halfUnits >= idx + 1
-    const rightFull = halfUnits >= idx + 2
-    const ox = i * (unitW + gap)
-    const oy = 0
-    // 饱和 ♦/🍗 风格用像素化的"熟猪排"(鸡腿形)：13x12
-    // 这里统一画鸡腿形：左侧(骨头+肉)与右侧(肉) —— 每半边各自着色
-    return (
-      <g key={`fd-${i}`} transform={`translate(${ox} ${oy})`}>
-        {/* 骨头：左 4 列（骨头色） */}
-        <path
-          d="M0 5 L3 5 L3 6 L1 6 L1 8 L3 8 L3 10 L2 10 L2 11 L4 11 L4 9 L5 9 L5 4 L4 4 L4 2 L3 2 L3 3 L2 3 L2 5 Z"
-          fill={leftFull ? "#f3e5c4" : "#6e5a3a"}
-          stroke={stroke}
-          strokeWidth={1}
-        />
-        {/* 肉：右 8 列棕色；分左右半各 4 列作为"半颗单位"着色 */}
-        <path
-          d="M5 1 L9 1 L11 3 L12 6 L12 8 L11 10 L9 11 L5 11 Z"
-          fill={rightFull ? "#b5651d" : "#4a2a0c"}
-          stroke={stroke}
-          strokeWidth={1}
-        />
-        {/* 左半肉 = 第1-2行的 5-8 列，作为半单位指示 */}
-        <path
-          d="M5 1 L7 1 L8 2 L8 10 L7 11 L5 11 Z"
-          fill={leftFull ? "#c97524" : "#3d2209"}
-          stroke="none"
-        />
-        {/* 高光小点 */}
-        {leftFull && <rect x={6} y={3} width={1} height={1} fill="#f1b478" />}
-        {rightFull && <rect x={10} y={5} width={1} height={1} fill="#f1b478" />}
-      </g>
-    )
-  })
+  const clamped = Math.max(0, Math.min(maxHunger, Math.round(hunger)))
   return (
-    <div className="mc-bar mc-bar-hunger" aria-label={`饥饿 ${Math.floor(clamped)}/${maxHunger}`}>
-      <svg
-        viewBox={`0 0 ${totalW} ${unitH}`}
-        width={totalW * 2}
-        height={unitH * 2}
-        shapeRendering="crispEdges"
-        style={{ imageRendering: "pixelated", display: "block" }}
-      >
-        {diamonds}
-      </svg>
+    <div className="mc-bar mc-bar-hunger" aria-label={`饥饿 ${clamped}/${maxHunger}`}>
+      <img src="/assets/Hungerbar/20.png" alt="" width={267} height={30} draggable={false} className="mc-bar-img" />
     </div>
   )
 }

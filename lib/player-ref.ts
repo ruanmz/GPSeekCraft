@@ -78,6 +78,9 @@ function makeMobileInput(): MobileInput {
 
 export const mobileInput: MobileInput = makeMobileInput()
 
+// 供 F3 调试面板读取：当前准星指向的方块 id（由 block-interaction 逐帧写入）
+export const debugTarget: { block: number | null } = { block: null }
+
 /** 移动端模式检测：
  *   1. URL ?phone=1 | ?phone=true | hash #phone → 强制手机（debug 机制，不检测设备）
  *   2. 否则 触屏 + (移动端 UA 或 iPadOS Mac+Touch 或 窄屏) → 自动漫

@@ -10,7 +10,7 @@ const pixel = VT323({
 })
 
 export const metadata: Metadata = {
-  title: 'VoxelCraft - 网页版我的世界',
+  title: 'GPSeekCraft - 网页版我的世界',
   description: '基于 React Three Fiber 的浏览器体素沙盒游戏：多群系世界生成、水流动、日夜光照、合成与生存。',
   generator: 'v0.app',
 }

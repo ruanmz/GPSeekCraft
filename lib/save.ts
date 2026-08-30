@@ -1,65 +1,75 @@
-// 本地存档：localStorage
+// 多存档系统：localStorage（世界由 seed 确定性生成，只额外保存玩家改动 edits，体积极小）
 import type { BlockId } from "./blocks"
 
-const SAVE_KEY = "mc-clone-save-v1"
+const STORE_KEY = "mc-clone-saves-v1"
 
 export interface ItemStack {
   id: BlockId
   count: number
 }
 
+export type GameMode = "survival" | "creative"
+
 export interface SaveData {
+  id: string
+  name: string
   seed: number
-  gameMode: "survival" | "creative"
-  player: {
-    x: number
-    y: number
-    z: number
-    yaw: number
-    pitch: number
-    health: number
-    hunger: number
-  }
+  gameMode: GameMode
+  createdAt: number
+  lastPlayed: number
+  player: { x: number; y: number; z: number; yaw: number; pitch: number }
+  health: number
+  hunger: number
   spawn: { x: number; y: number; z: number }
   hotbar: (ItemStack | null)[]
   inventory: (ItemStack | null)[]
   edits: Record<string, number>
-  time: number // 世界时间 0..1
-  settings: {
-    renderDistance: number
-    mouseSensitivity: number
-  }
+  worldTime: number
+  flying?: boolean
+  thirdPerson?: boolean
 }
 
-export function saveGame(data: SaveData) {
+function readAll(): SaveData[] {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data))
-  } catch (e) {
-    console.log("[v0] 存档失败:", (e as Error).message)
-  }
-}
-
-export function loadGame(): SaveData | null {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as SaveData
-  } catch (e) {
-    console.log("[v0] 读档失败:", (e as Error).message)
-    return null
-  }
-}
-
-export function hasSave(): boolean {
-  try {
-    return localStorage.getItem(SAVE_KEY) !== null
+    const raw = localStorage.getItem(STORE_KEY)
+    if (!raw) return []
+    const arr = JSON.parse(raw)
+    return Array.isArray(arr) ? (arr as SaveData[]) : []
   } catch {
-    return false
+    return []
   }
 }
 
-export function deleteSave() {
+function writeAll(list: SaveData[]) {
   try {
-    localStorage.removeItem(SAVE_KEY)
-  } catch {}
+    localStorage.setItem(STORE_KEY, JSON.stringify(list))
+  } catch (e) {
+    console.log("[saves] 保存失败:", (e as Error).message)
+  }
+}
+
+/** 所有存档，按最近游玩时间倒序 */
+export function listSaves(): SaveData[] {
+  return readAll().sort((a, b) => b.lastPlayed - a.lastPlayed)
+}
+
+export function getSave(id: string): SaveData | null {
+  return readAll().find((s) => s.id === id) ?? null
+}
+
+export function hasAnySave(): boolean {
+  return readAll().length > 0
+}
+
+/** 新建或覆盖某个存档 */
+export function upsertSave(data: SaveData): void {
+  const list = readAll()
+  const i = list.findIndex((s) => s.id === data.id)
+  if (i >= 0) list[i] = data
+  else list.push(data)
+  writeAll(list)
+}
+
+export function deleteSave(id: string): void {
+  writeAll(readAll().filter((s) => s.id !== id))
 }

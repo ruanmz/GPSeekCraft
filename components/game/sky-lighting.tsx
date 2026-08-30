@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { useGame } from "@/lib/store"
@@ -15,9 +15,15 @@ export function SkyLighting() {
   const moonRef = useRef<THREE.DirectionalLight>(null)
   const ambientRef = useRef<THREE.AmbientLight>(null)
   const hemiRef = useRef<THREE.HemisphereLight>(null)
-  const { scene } = useThree()
+  const { scene, camera, gl } = useThree()
   const timeRef = useRef(useGame.getState().worldTime)
   const storeSync = useRef(0)
+  const shadows = useGame((s) => s.settings.shadows)
+
+  // 阴影开关：动态启停 shadow map，关闭后跳过阴影 pass 省算力
+  useEffect(() => {
+    gl.shadowMap.enabled = shadows
+  }, [gl, shadows])
 
   useFrame((state, delta) => {
     // 推进时间
@@ -36,6 +42,7 @@ export function SkyLighting() {
     const sunY = Math.sin(ang)
     const sunX = Math.cos(ang)
     const sunZ = 0.3
+    const sunDir = new THREE.Vector3(sunX, Math.max(sunY, 0.1), sunZ).normalize()
 
     // 先计算昼夜亮度，再交给太阳/月光和环境光使用。
     const dayness = THREE.MathUtils.smoothstep(sunY, -0.2, 0.35)
@@ -43,24 +50,60 @@ export function SkyLighting() {
     const brightness = 0.18 + dayness * 0.82
     const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3)
 
+    // ====== 阴影相机：跟随玩家移动，让 ShadowMap 始终保持在玩家附近 =====
+    // 用玩家世界坐标（camera 下方 player.y 玩家脚底）
+    const px = camera.position.x
+    const py = camera.position.y
+    const pz = camera.position.z
+
     if (sunRef.current) {
-      sunRef.current.position.set(sunX * 100, 100 + sunY * 100, sunZ * 100)
-      sunRef.current.target.position.set(0, 0, 0)
-      sunRef.current.target.updateMatrixWorld()
-      sunRef.current.intensity = Math.max(0, sunY) * 1.05 * brightness + 0.01
+      // 太阳光方向在世界空间里固定为 sunDir，位置 = shadowTarget + sunDir * 距离
+      const SIZE = 128 // 覆盖 ±64 m → renderDistance=4 每边 64m 全囊括
+      const FAR = 320
+      const NEAR = 1
+      const sun = sunRef.current
+      sun.position.set(
+        px + sunDir.x * FAR * 0.55,
+        py + Math.max(sunDir.y, 0.05) * FAR * 0.55,
+        pz + sunDir.z * FAR * 0.55,
+      )
+      // 阴影"看向"玩家位置
+      sun.target.position.set(px, py, pz)
+      sun.target.updateMatrixWorld()
+      sun.intensity = Math.max(0, sunY) * 1.25 * brightness + 0.01
+
+      const sh = sun.shadow as THREE.DirectionalLightShadow
+      // 已经是 PCFSoft(默认)，升 mapSize
+      const targetSize = 2048
+      if (sh.mapSize.width !== targetSize) {
+        sh.mapSize.set(targetSize, targetSize)
+        sh.needsUpdate = true
+      }
+      // 相机盒 = (px ± SIZE/2, py ± SIZE/2)
+      const half = SIZE / 2
+      sh.camera.left = -half
+      sh.camera.right = half
+      sh.camera.top = half
+      sh.camera.bottom = -half
+      sh.camera.near = NEAR
+      sh.camera.far = FAR
+      // 调 bias：太小→阴影条带，太大→阴影"脱离"方块被吞
+      sh.bias = -0.0004
+      sh.normalBias = 0.06
+      sh.camera.updateProjectionMatrix()
     }
     if (moonRef.current) {
-      moonRef.current.position.set(-sunX * 100, -sunY * 100, -sunZ * 100)
+      moonRef.current.position.set(px - sunDir.x * 160, py - sunDir.y * 160, pz - sunDir.z * 160)
       moonRef.current.intensity = Math.max(0, -sunY) * 0.32 * nightness + 0.015
     }
 
-    // 亮度系统：以太阳高度计算昼夜亮度，并保留月光/洞穴的最低可见度。
-
+    // === 环境/半球：压低基础值，让上面盖住的方块主要靠 shadowmap + ao_v 变暗 ===
+    // 白天总环境(ambient 0.22 + hemi 0.28)≈0.5，夜晚≈0.13 能看清路，洞穴再叠 ao*0.55 就更黑
     if (ambientRef.current) {
-      ambientRef.current.intensity = 0.12 + brightness * 0.32
+      ambientRef.current.intensity = 0.08 + brightness * 0.18
     }
     if (hemiRef.current) {
-      hemiRef.current.intensity = 0.1 + brightness * 0.28
+      hemiRef.current.intensity = 0.06 + brightness * 0.26
     }
 
     // 天空/雾颜色
@@ -77,23 +120,23 @@ export function SkyLighting() {
 
   return (
     <>
-      <ambientLight ref={ambientRef} intensity={0.5} />
-      <hemisphereLight ref={hemiRef} args={["#bcd8ff", "#544433", 0.4]} />
+      <ambientLight ref={ambientRef} intensity={0.3} />
+      <hemisphereLight ref={hemiRef} args={["#bcd8ff", "#544433", 0.35]} />
       <directionalLight
         ref={sunRef}
-        castShadow
+        castShadow={shadows}
         intensity={1}
         color="#fff3d6"
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-near={2}
-        shadow-camera-far={120}
-        shadow-camera-left={-48}
-        shadow-camera-right={48}
-        shadow-camera-top={48}
-        shadow-camera-bottom={-48}
-        shadow-bias={-0.0001}
-        shadow-normalBias={0.012}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={1}
+        shadow-camera-far={320}
+        shadow-camera-left={-64}
+        shadow-camera-right={64}
+        shadow-camera-top={64}
+        shadow-camera-bottom={-64}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.06}
       />
       <directionalLight ref={moonRef} intensity={0.15} color="#8fa8d8" />
     </>

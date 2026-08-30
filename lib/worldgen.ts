@@ -3,8 +3,8 @@ import { Noise } from "./noise"
 import { BLOCKS, type BlockId } from "./blocks"
 
 export const CHUNK_SIZE = 16 // x/z 尺寸
-export const WORLD_HEIGHT = 64 // y 高度
-export const SEA_LEVEL = 26
+export const WORLD_HEIGHT = 128 // y 高度
+export const SEA_LEVEL = 48
 
 export type Biome = "plains" | "forest" | "desert" | "snow" | "ocean"
 
@@ -55,7 +55,7 @@ export class WorldGenerator {
   getHeight(wx: number, wz: number): number {
     const continent = this.heightNoise.fbm2(wx * 0.0035, wz * 0.0035, 4)
     const hills = this.heightNoise.fbm2(wx * 0.02 + 50, wz * 0.02 + 50, 4) * 0.5
-    let h = SEA_LEVEL + continent * 18 + hills * 8
+    let h = SEA_LEVEL + 6 + continent * 24 + hills * 12
     return Math.floor(h)
   }
 
@@ -99,7 +99,7 @@ export class WorldGenerator {
         const isOcean = height < SEA_LEVEL - 3
         const continent = continentCache[lx + lz * CHUNK_SIZE]
         const colPseudo = pseudoCache[lx + lz * CHUNK_SIZE]
-        const wormMaxY = Math.min(height - 2, 55)
+        const wormMaxY = Math.min(height - 2, 115)
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let block: BlockId = BLOCKS.AIR
@@ -186,8 +186,8 @@ export class WorldGenerator {
               (biome === "plains" || biome === "forest") &&
               continent > 0.3 &&
               colPseudo > 0.998 &&
-              y < 24 &&
-              y > 10 &&
+              y < height - 3 &&
+              y > height - 24 &&
               (block === BLOCKS.STONE || block === BLOCKS.GRANITE || block === BLOCKS.DIORITE || block === BLOCKS.ANDESITE)
             ) {
               block = BLOCKS.EMERALD_ORE
@@ -250,14 +250,15 @@ export class WorldGenerator {
     const n3 = this.oreNoise.perlin3(wx * 0.15 + 30, y * 0.15 + 30, wz * 0.15 + 30)
     const n4 = this.oreNoise.perlin3(wx * 0.12 + 40, y * 0.12 + 40, wz * 0.12 + 40)
 
-    if (y < 14 && n > 0.73 && n2 > 0.3) return BLOCKS.DIAMOND_ORE
-    if (y < 22 && n3 < -0.78) return BLOCKS.REDSTONE_ORE
-    if (y < 22 && n > 0.72 && n2 < -0.3) return BLOCKS.GOLD_ORE
-    if (y < 28 && n4 > 0.74) return BLOCKS.LAPIS_ORE
-    if (y < 45 && n > 0.66) return BLOCKS.IRON_ORE
-    if (y < 52 && n > 0.71 && y > 12) return BLOCKS.COPPER_ORE
-    if (y < 16 && n > 0.74) return BLOCKS.COPPER_ORE
-    if (y < 56 && n < -0.68) return BLOCKS.COAL_ORE
+    // 按 y 分层放置：钻石/红石在深层，金/青金石中层，铁/煤/铜分布更广
+    if (y < 16 && n > 0.58 && n2 > 0.35) return BLOCKS.DIAMOND_ORE
+    if (y < 24 && n3 < -0.64) return BLOCKS.REDSTONE_ORE
+    if (y < 28 && n > 0.6 && n2 < -0.25) return BLOCKS.GOLD_ORE
+    if (y < 36 && n4 > 0.62) return BLOCKS.LAPIS_ORE
+    if (y < 60 && n > 0.5) return BLOCKS.IRON_ORE
+    if (y < 48 && y > 22 && n > 0.56) return BLOCKS.COPPER_ORE
+    if (y < 22 && n > 0.6) return BLOCKS.COPPER_ORE
+    if (y < 80 && n < -0.4) return BLOCKS.COAL_ORE
     return fallback
   }
 

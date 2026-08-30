@@ -95,10 +95,11 @@ function drawFaceTexture(ctx: CanvasRenderingContext2D, def: BlockDef, face: "to
     for (let i = 0; i < 35; i++) { ctx.fillStyle = rnd() > 0.5 ? `rgba(255,255,255,0.15)` : `rgba(0,0,0,0.1)`; ctx.fillRect(Math.floor(rnd()*PX), Math.floor(rnd()*PX), 1, 1) }
   }
   if (k === "WATER") {
-    ctx.strokeStyle = `rgba(120,180,255,0.4)`; ctx.lineWidth = 1
-    for (let y = 2; y < PX; y += 5) { ctx.beginPath(); ctx.moveTo(0, y); for (let x = 0; x < PX; x += 4) ctx.lineTo(x + 2, y + (x % 8 === 0 ? 1 : -1)); ctx.stroke() }
+    paintWaterTile(ctx, PX, rnd)
   }
-  if (k === "LAVA") { for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,200,50,0.6)`; ctx.fillRect(Math.floor(rnd()*14), Math.floor(rnd()*14), 2, 2) } }
+  if (k === "LAVA") {
+    paintLavaTile(ctx, PX, rnd)
+  }
   if (/LEAVES/.test(k)) {
     for (let i = 0; i < 12; i++) { ctx.fillStyle = `rgba(0,0,0,0.25)`; ctx.fillRect(Math.floor(rnd()*PX), Math.floor(rnd()*PX), 1, 1) }
     for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(255,255,255,0.15)`; ctx.fillRect(Math.floor(rnd()*PX), Math.floor(rnd()*PX), 1, 1) }
@@ -123,8 +124,83 @@ function drawFaceTexture(ctx: CanvasRenderingContext2D, def: BlockDef, face: "to
   if (k === "CHEST" && face === "side") { ctx.fillStyle = `rgba(0,0,0,0.3)`; ctx.fillRect(5, 6, 6, 4) }
 }
 
+// ─── 液体贴图绘制（水/岩浆）──────────────────────────────
+// 低噪声 + 正弦横向波纹 = 更像流动液体，而不是羊毛一样的每像素随机噪声
+export function paintWaterTile(ctx: CanvasRenderingContext2D, PX: number, rnd: () => number) {
+  for (let y = 0; y < PX; y++) for (let x = 0; x < PX; x++) {
+    const t = (rnd() - 0.5) * 0.06
+    // 横向波纹：行与行之间错位，形成斜向流动感
+    const wave = Math.sin(x / 2.1 + Math.sin(y / 2.4) * 1.4)
+    const bright = 1 + wave * 0.13 + t
+    const R = Math.round(58 + 24 * bright)
+    const G = Math.round(110 + 55 * bright)
+    const B = Math.round(238 + 28 * bright)
+    ctx.fillStyle = `rgb(${R},${G},${B})`
+    ctx.fillRect(x, y, 1, 1)
+  }
+  // 少量白色高光闪烁点（水花）
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = `rgba(255,255,255,0.22)`
+    ctx.fillRect(Math.floor(rnd() * PX), Math.floor(rnd() * PX), 1, 1)
+  }
+}
+
+export function paintLavaTile(ctx: CanvasRenderingContext2D, PX: number, rnd: () => number) {
+  for (let y = 0; y < PX; y++) for (let x = 0; x < PX; x++) {
+    const t = (rnd() - 0.5) * 0.08
+    // 更明显的波纹：岩浆流动感
+    const wave = Math.sin(x / 2.4 + Math.sin(y / 2.8) * 1.6)
+    const bright = 1 + wave * 0.26 + t
+    const R = Math.round(198 + 32 * bright)
+    const G = Math.round(64 + 18 * bright)
+    const B = Math.round(14 + 6 * bright)
+    ctx.fillStyle = `rgb(${R},${G},${B})`
+    ctx.fillRect(x, y, 1, 1)
+  }
+  // 亮橙/黄色热斑
+  for (let i = 0; i < 7; i++) {
+    ctx.fillStyle = `rgba(255,215,80,0.55)`
+    ctx.fillRect(Math.floor(rnd() * (PX - 2)), Math.floor(rnd() * (PX - 2)), 2, 2)
+  }
+}
+
 // ─── 图集生成 ──────────────────────────────────────────────
 let atlasTexture: THREE.CanvasTexture | null = null
+let waterTexture: THREE.CanvasTexture | null = null
+let lavaTexture: THREE.CanvasTexture | null = null
+
+// 生成可平铺的液体专用贴图（RepeatWrapping），供 chunk 的水/岩浆材质独立采样，
+// 这样就能在 useFrame 里安全地滚动 offset 实现流动动画，而不会污染共享图集。
+function makeLiquidTexture(kind: "water" | "lava"): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas")
+  canvas.width = 16
+  canvas.height = 16
+  const ctx = canvas.getContext("2d")!
+  ctx.imageSmoothingEnabled = false
+  let s = kind === "water" ? 424242 : 918273
+  const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 }
+  if (kind === "water") paintWaterTile(ctx, 16, rnd)
+  else paintLavaTile(ctx, 16, rnd)
+
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.magFilter = THREE.NearestFilter
+  tex.minFilter = THREE.LinearFilter
+  tex.wrapS = THREE.RepeatWrapping
+  tex.wrapT = THREE.RepeatWrapping
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.generateMipmaps = false
+  return tex
+}
+
+export function getWaterTexture(): THREE.CanvasTexture {
+  if (!waterTexture) waterTexture = makeLiquidTexture("water")
+  return waterTexture
+}
+
+export function getLavaTexture(): THREE.CanvasTexture {
+  if (!lavaTexture) lavaTexture = makeLiquidTexture("lava")
+  return lavaTexture
+}
 
 export function getAtlasTexture(): THREE.CanvasTexture {
   if (atlasTexture) return atlasTexture

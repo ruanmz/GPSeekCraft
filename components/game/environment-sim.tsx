@@ -4,7 +4,7 @@ import { useRef } from "react"
 import { useFrame } from "@react-three/fiber"
 import { useGame } from "@/lib/store"
 import { player } from "@/lib/player-ref"
-import { BLOCKS, isSolid } from "@/lib/blocks"
+import { BLOCKS, isSolid, type BlockId } from "@/lib/blocks"
 import { worldEvents, EV_BLOCK_CHANGE, EV_CHUNK_DIRTY } from "@/lib/emitter"
 import { chunkKey } from "@/lib/world"
 import { CHUNK_SIZE } from "@/lib/worldgen"
@@ -83,7 +83,7 @@ export function EnvironmentSim() {
           if (randRef.current / 233280 > DIRT_TICK_PROB) continue
 
           // 雪原群系：顶面是雪 → 变 snow_grass（简单判断：y+1 是雪，或邻居里有 snow_grass 优先）
-          let target = BLOCKS.GRASS
+          let target: BlockId = BLOCKS.GRASS
           for (let dx = -1; dx <= 1 && target === BLOCKS.GRASS; dx++) {
             for (let dz = -1; dz <= 1 && target === BLOCKS.GRASS; dz++) {
               if (world.getBlock(wx + dx, surfaceY, wz + dz) === BLOCKS.SNOW_GRASS) {

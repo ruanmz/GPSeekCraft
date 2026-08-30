@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react"
 import { useThree, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
-import { BLOCKS, BLOCK_DEFS, isSolid, type BlockId } from "@/lib/blocks"
+import { BLOCKS, BLOCK_DEFS, getBlockTool, isSolid, type BlockId } from "@/lib/blocks"
 import { useGame } from "@/lib/store"
-import { isPlaceable } from "@/lib/items"
+import { getItem, isPlaceable } from "@/lib/items"
 import { worldEvents, EV_BLOCK_CHANGE, EV_CHUNK_DIRTY, EV_ITEM_DROP } from "@/lib/emitter"
 import { chunkKey } from "@/lib/world"
-import { player } from "@/lib/player-ref"
+import { player, debugTarget } from "@/lib/player-ref"
 import {
   playSfx,
   ensureAudioResumed,
@@ -109,6 +109,31 @@ export function raycastVoxel(origin: THREE.Vector3, direction: THREE.Vector3, ma
 }
 
 type Hit = { x: number; y: number; z: number; id: BlockId; nx: number; ny: number; nz: number }
+
+// 工具材质挖掘速度倍数（MC 原版：木 2 / 石 4 / 铁 6 / 钻 8）
+const TIER_SPEED: Record<number, number> = { 1: 2, 2: 4, 3: 6, 4: 8 }
+
+// 计算挖掘速度（每秒进度 0..1）：
+// - 徒手：按硬度。
+// - 拿对工具：按工具材质大幅加速。
+// - 材质等级不足：挖得极慢（约 1/6 速度）。
+function miningSpeed(hardness: number, blockId: BlockId): number {
+  const base = 1 / Math.max(0.05, hardness + 0.2)
+  const held = useGame.getState().getSelected()
+  if (!held) return base
+  const item = getItem(held.id)
+  const tier = item.toolTier
+  const type = item.toolType
+  if (!tier || !type || type === "sword") return base
+  const toolInfo = getBlockTool(blockId)
+  // 需要工具但材质不够：极慢
+  if (toolInfo?.minTier && tier < toolInfo.minTier) return base * 0.16
+  // 工具类型匹配：用工具速度
+  if (toolInfo && type === toolInfo.tool) {
+    return (TIER_SPEED[tier] ?? 2) / Math.max(0.05, hardness + 0.2)
+  }
+  return base
+}
 
 // 挖掘动画：10 个破坏阶段对应的裂纹纹理程序化生成（Canvas）
 function makeCrackTexture(stage: number): THREE.Texture {
@@ -411,9 +436,9 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
         if (hit) {
           const st = useGame.getState()
           const def = BLOCK_DEFS[hit.id]
-          // 创造模式 / 基岩等不可破坏的特殊处理
+          // 创造模式：所有方块可破坏（含基岩 hardness=-1）；生存里基岩不可破坏
           if (st.gameMode === "creative") {
-            if (def?.hardness !== -1) breakBlock(hit)
+            if (def && (def.hardness !== -1 || hit.id === BLOCKS.BEDROCK)) breakBlock(hit)
             miningTarget.current = null
             miningProgress.current = 0
           } else {
@@ -561,6 +586,8 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
       highlightRef.current.visible = !!hit
       if (hit) highlightRef.current.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5)
     }
+    // 供 F3 调试面板读取当前指向的方块
+    debugTarget.block = hit ? hit.id : null
 
     // --- 挖掘进度累积（仅生存模式）---
     if (st.gameMode === "survival" && pressed) {
@@ -596,8 +623,8 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
           const hardness = def?.hardness ?? 1
           if (hardness >= 0) {
             const prevStage = Math.floor(miningProgress.current * 10)
-            // hardness = 秒数基准。徒手：每 1 秒累积 (1/hardness) 的进度。
-            const speed = 1 / Math.max(0.05, hardness + 0.2)
+            // 依据硬度与手持工具计算挖掘速度
+            const speed = miningSpeed(hardness, hit.id)
             miningProgress.current = Math.min(1, miningProgress.current + speed * dt)
             const curStage = Math.floor(miningProgress.current * 10)
             if (curStage !== prevStage && curStage >= 1 && curStage <= 9) {
@@ -630,7 +657,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     // 创造模式：长按左键按冷却节奏连挖（每块 1 秒间隔，与放置节奏一致）
     if (st.gameMode === "creative" && pressed && hit && player.ready) {
       const def = BLOCK_DEFS[hit.id]
-      if (def?.hardness !== -1) {
+      if (def && (def.hardness !== -1 || hit.id === BLOCKS.BEDROCK)) {
         const now = performance.now()
         if (now - lastCreativeBreak.current >= 500) {
           lastCreativeBreak.current = now

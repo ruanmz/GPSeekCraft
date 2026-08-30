@@ -1,6 +1,6 @@
 // 世界管理器：区块存储、跨区块方块读写、改动记录（用于存档）
 import { WorldGenerator, CHUNK_SIZE, WORLD_HEIGHT, chunkIndex } from "./worldgen"
-import { BLOCKS, type BlockId, isSolid } from "./blocks"
+import { BLOCKS, type BlockId, isSolid, isLiquid } from "./blocks"
 
 export function chunkKey(cx: number, cz: number): string {
   return `${cx},${cz}`
@@ -42,6 +42,8 @@ export class World {
     const key = chunkKey(cx, cz)
     let rec = this.chunks.get(key)
     if (rec) return rec
+    // eslint-disable-next-line no-console
+    console.log(`[CHUNK-GEN] generate (${cx},${cz}) at ${performance.now().toFixed(0)}ms`)
     const blocks = this.gen.generateChunk(cx, cz)
     // 应用该区块范围内的玩家改动
     const baseX = cx * CHUNK_SIZE
@@ -117,5 +119,28 @@ export class World {
       if (isSolid(this.getBlock(wx, y, wz))) return y
     }
     return 0
+  }
+
+  // 判断某方块头顶有没有固体或液体遮罩（给 mesher 做简易洞穴 AO 用）
+  // 返回 [0, 1]，1=完全露天，0=被 6+ 层厚的东西盖住
+  skyExposure(wx: number, wy: number, wz: number): number {
+    let occlude = 0
+    const MAX_LOOKUP = 6
+    for (let dy = 1; dy <= MAX_LOOKUP; dy++) {
+      const y = wy + dy
+      if (y >= WORLD_HEIGHT) break
+      const id = this.getBlock(wx, y, wz)
+      if (isSolid(id) || isLiquid(id)) occlude++
+    }
+    return Math.max(0, 1 - occlude / MAX_LOOKUP)
+  }
+
+  // 简易"方块见不见得到天空"的版本（一次性扫到顶：性能更差但精准，用于面颜色）
+  canSeeSky(wx: number, wy: number, wz: number): boolean {
+    for (let y = wy + 1; y < WORLD_HEIGHT; y++) {
+      const id = this.getBlock(wx, y, wz)
+      if (isSolid(id) || isLiquid(id)) return false
+    }
+    return true
   }
 }

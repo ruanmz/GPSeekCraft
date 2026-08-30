@@ -492,3 +492,75 @@ export function getDrop(id: BlockId): BlockId {
   const def = getBlock(id)
   return def.drop !== undefined ? def.drop : id
 }
+
+// 方块适宜工具 + 开采所需最低工具材质等级（toolTier：1木 2石 3铁 4钻）
+export interface BlockToolInfo {
+  tool: "pickaxe" | "axe" | "shovel"
+  minTier?: number
+}
+
+const BLOCK_TOOL: Partial<Record<BlockId, BlockToolInfo>> = {
+  // 石头/矿物类 → 镐
+  [BLOCKS.STONE]: { tool: "pickaxe" },
+  [BLOCKS.COBBLESTONE]: { tool: "pickaxe" },
+  [BLOCKS.SANDSTONE]: { tool: "pickaxe" },
+  [BLOCKS.COAL_ORE]: { tool: "pickaxe" },
+  [BLOCKS.IRON_ORE]: { tool: "pickaxe", minTier: 2 },
+  [BLOCKS.GOLD_ORE]: { tool: "pickaxe", minTier: 3 },
+  [BLOCKS.DIAMOND_ORE]: { tool: "pickaxe", minTier: 3 },
+  [BLOCKS.REDSTONE_ORE]: { tool: "pickaxe", minTier: 3 },
+  [BLOCKS.LAPIS_ORE]: { tool: "pickaxe", minTier: 2 },
+  [BLOCKS.EMERALD_ORE]: { tool: "pickaxe", minTier: 3 },
+  [BLOCKS.COPPER_ORE]: { tool: "pickaxe", minTier: 2 },
+  [BLOCKS.GRANITE]: { tool: "pickaxe" },
+  [BLOCKS.DIORITE]: { tool: "pickaxe" },
+  [BLOCKS.ANDESITE]: { tool: "pickaxe" },
+  [BLOCKS.POLISHED_GRANITE]: { tool: "pickaxe" },
+  [BLOCKS.POLISHED_DIORITE]: { tool: "pickaxe" },
+  [BLOCKS.POLISHED_ANDESITE]: { tool: "pickaxe" },
+  [BLOCKS.STONE_BRICKS]: { tool: "pickaxe" },
+  [BLOCKS.CRACKED_STONE_BRICKS]: { tool: "pickaxe" },
+  [BLOCKS.MOSSY_STONE_BRICKS]: { tool: "pickaxe" },
+  [BLOCKS.CHISELED_STONE_BRICKS]: { tool: "pickaxe" },
+  [BLOCKS.NETHER_BRICKS]: { tool: "pickaxe" },
+  [BLOCKS.QUARTZ_BLOCK]: { tool: "pickaxe" },
+  [BLOCKS.BRICK]: { tool: "pickaxe" },
+  [BLOCKS.GLOWSTONE]: { tool: "pickaxe" },
+  [BLOCKS.END_STONE]: { tool: "pickaxe" },
+  [BLOCKS.OBSIDIAN]: { tool: "pickaxe", minTier: 4 },
+  [BLOCKS.ENCHANTING_TABLE]: { tool: "pickaxe" },
+  [BLOCKS.ANVIL]: { tool: "pickaxe" },
+  [BLOCKS.FURNACE]: { tool: "pickaxe" },
+  [BLOCKS.COBBLESTONE_WALL]: { tool: "pickaxe" },
+  // 木质类 → 斧
+  [BLOCKS.LOG]: { tool: "axe" },
+  [BLOCKS.SPRUCE_LOG]: { tool: "axe" },
+  [BLOCKS.BIRCH_LOG]: { tool: "axe" },
+  [BLOCKS.JUNGLE_LOG]: { tool: "axe" },
+  [BLOCKS.PLANKS]: { tool: "axe" },
+  [BLOCKS.SPRUCE_PLANKS]: { tool: "axe" },
+  [BLOCKS.BIRCH_PLANKS]: { tool: "axe" },
+  [BLOCKS.JUNGLE_PLANKS]: { tool: "axe" },
+  [BLOCKS.CRAFTING_TABLE]: { tool: "axe" },
+  [BLOCKS.BOOKSHELF]: { tool: "axe" },
+  [BLOCKS.CHEST]: { tool: "axe" },
+  [BLOCKS.FENCE]: { tool: "axe" },
+  [BLOCKS.FENCE_GATE]: { tool: "axe" },
+  [BLOCKS.PUMPKIN]: { tool: "axe" },
+  [BLOCKS.MELON]: { tool: "axe" },
+  [BLOCKS.LADDER]: { tool: "axe" },
+  // 土质类 → 锹
+  [BLOCKS.GRASS]: { tool: "shovel" },
+  [BLOCKS.DIRT]: { tool: "shovel" },
+  [BLOCKS.SAND]: { tool: "shovel" },
+  [BLOCKS.GRAVEL]: { tool: "shovel" },
+  [BLOCKS.SNOW]: { tool: "shovel" },
+  [BLOCKS.SNOW_GRASS]: { tool: "shovel" },
+  [BLOCKS.DIRT_PATH]: { tool: "shovel" },
+  [BLOCKS.PODZOL]: { tool: "shovel" },
+  [BLOCKS.MYCELIUM]: { tool: "shovel" },
+}
+
+export function getBlockTool(id: BlockId): BlockToolInfo | undefined {
+  return BLOCK_TOOL[id]
+}

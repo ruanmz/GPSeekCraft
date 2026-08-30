@@ -56,7 +56,22 @@
   }
 }
 
-.mc-menu,.game-root{width:100vw;height:100vh;min-height:100vh;background:#202020;color:#fff;font-family:var(--font-pixel),monospace;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}.mc-menu{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(#5d89b8,#a7c7df 55%,#5a7d43);touch-action:manipulation}.mc-logo{font-size:clamp(40px,8vw,90px);font-weight:900;letter-spacing:4px;text-shadow:5px 5px #333}.mc-subtitle{margin:0;text-shadow:2px 2px #333}.mc-menu-panel{display:flex;flex-direction:column;align-items:center;gap:12px;width:min(440px,90vw)}.mc-button{min-height:42px;padding:8px 22px;cursor:pointer;font:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}.mc-wide{width:100%}.mc-row{display:flex;align-items:end;gap:10px;width:100%}.mc-field{display:flex;flex:1;flex-direction:column;gap:5px}.mc-field input{height:40px;padding:6px;background:#222;color:#fff;border:2px solid #000;font:inherit}.mc-hint{font-size:12px;text-align:center;text-shadow:1px 1px #333}.game-root{position:relative;overflow:hidden}.game-root canvas{position:absolute;inset:0;width:100% !important;height:100% !important;display:block;touch-action:none;-webkit-user-drag:none;user-drag:none}.game-root img,.game-root svg,.game-root canvas,.game-root button,.game-root .slot,.game-root .mc-btn,.game-root .mc-hotbar-more{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}.game-hud{position:absolute;inset:0;pointer-events:none}.bars{position:absolute;display:flex;gap:14px;line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,0.55)}.bars.bottom-left{left:20px;bottom:86px;align-items:flex-end}.bars.top-left{left:16px;top:16px;flex-direction:column;gap:8px;align-items:flex-start}.bars.center{left:50%;bottom:86px;transform:translateX(-50%);align-items:flex-end}.mc-bar{filter:drop-shadow(1px 2px 0 rgba(0,0,0,0.65))}.crosshair{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none}.crosshair-v{position:absolute;left:50%;top:50%;width:2px;height:20px;background:#fff;transform:translate(-50%,-50%)}.crosshair-h{position:absolute;left:50%;top:50%;width:20px;height:2px;background:#fff;transform:translate(-50%,-50%)}.hotbar{position:absolute;bottom:18px;left:50%;display:flex;transform:translateX(-50%)}.slot{position:relative;display:flex;width:52px;height:52px;align-items:center;justify-content:center;background:#555;border:2px solid #222;color:#fff}.slot.selected{border-color:#fff;box-shadow:0 0 0 2px #222}.slot-icon{display:block;line-height:0}.slot-count{position:absolute;left:2px;bottom:0;font-size:14px;font-weight:900;color:#fff;line-height:1;text-shadow:1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000;letter-spacing:0.2px;white-space:nowrap}.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.55);color:#fff;pointer-events:auto;z-index:50}.overlay h2{font-size:30px;text-shadow:2px 2px #333}.inventory{background:rgba(0,0,0,.35)}
+.mc-menu,.game-root{width:100vw;height:100vh;min-height:100vh;background:#202020;color:#fff;font-family:var(--font-pixel),monospace;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}.mc-menu{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(#5d89b8,#a7c7df 55%,#5a7d43);touch-action:manipulation}.mc-logo{font-size:clamp(40px,8vw,90px);font-weight:900;letter-spacing:4px;text-shadow:5px 5px #333}.mc-subtitle{margin:0;text-shadow:2px 2px #333}.mc-menu-panel{display:flex;flex-direction:column;align-items:center;gap:12px;width:min(440px,90vw)}.mc-button{min-height:42px;padding:8px 22px;cursor:pointer;font:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}.mc-wide{width:100%}.mc-row{display:flex;align-items:end;gap:10px;width:100%}.mc-field{display:flex;flex:1;flex-direction:column;gap:5px}.mc-field input{height:40px;padding:6px;background:#222;color:#fff;border:2px solid #000;font:inherit}.mc-hint{font-size:12px;text-align:center;text-shadow:1px 1px #333}
+.load-bar{width:min(360px,80vw);height:22px;background:#1a1a1a;border:3px solid #000;box-shadow:inset 0 2px 6px #000,3px 3px #333}
+.load-fill{height:100%;background:linear-gradient(#7ec850,#4a8f2a);transition:width .15s linear}
+.mc-panel-title{margin:0;font-size:26px;text-shadow:2px 2px #333}.mc-save-list{display:flex;flex-direction:column;gap:8px;width:100%;max-height:42vh;overflow-y:auto;scrollbar-width:none}.mc-save-list::-webkit-scrollbar{display:none}.mc-save-item{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left}
+.mc-save-row{display:flex;align-items:stretch;gap:6px;width:100%;min-width:0;overflow:hidden}
+.mc-save-row .mc-save-item{flex:1;min-width:0}
+.mc-save-item span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-del{flex:0 0 auto;width:42px;padding:0;font-size:18px;font-weight:900;color:#fff;background:#7a2020;border:2px solid #000;box-shadow:2px 2px 0 #333}
+.mc-del:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #333}
+.mc-modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:100;pointer-events:auto}
+.mc-modal-box{display:flex;flex-direction:column;align-items:center;gap:14px;width:min(380px,88vw);background:#8b8b8b;border:3px solid #000;box-shadow:inset 0 0 0 2px #6f6f6f,6px 6px 0 #333;padding:22px;color:#fff;text-shadow:1px 1px #000}
+.mc-modal-box h3{margin:0;font-size:20px;text-shadow:2px 2px #000}
+.mc-modal-box p{margin:0;text-align:center;font-size:14px}
+.mc-modal-actions{display:flex;gap:10px;width:100%}
+.mc-modal-actions .mc-button{flex:1;min-width:0}
+.mc-del-confirm{background:#7a2020}.mc-save-meta{opacity:.65;font-size:12px;white-space:nowrap}.game-root{position:relative;overflow:hidden}.game-root canvas{position:absolute;inset:0;width:100% !important;height:100% !important;display:block;touch-action:none;-webkit-user-drag:none;user-drag:none}.mc-debug{position:absolute;left:4px;top:4px;z-index:80;font-family:'Courier New',monospace;font-size:12px;line-height:1.35;color:#fff;text-shadow:1px 1px 0 #000;background:rgba(0,0,0,.45);padding:6px 10px;pointer-events:none;white-space:pre}.game-root img,.game-root svg,.game-root canvas,.game-root button,.game-root .slot,.game-root .mc-btn,.game-root .mc-hotbar-more{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}.game-hud{position:absolute;inset:0;pointer-events:none}.bars{position:absolute;display:flex;gap:14px;line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,0.55)}.bars.bottom-left{left:20px;bottom:86px;align-items:flex-end}.bars.top-left{left:16px;top:16px;flex-direction:column;gap:8px;align-items:flex-start}.bars.center{left:50%;bottom:86px;transform:translateX(-50%);align-items:flex-end}.mc-bar{filter:drop-shadow(1px 2px 0 rgba(0,0,0,0.65))}.mc-bar-img{display:block;image-rendering:pixelated;-webkit-user-drag:none;user-drag:none;max-width:min(45vw,267px);height:auto}.crosshair{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none}.crosshair-v{position:absolute;left:50%;top:50%;width:2px;height:20px;background:#fff;transform:translate(-50%,-50%)}.crosshair-h{position:absolute;left:50%;top:50%;width:20px;height:2px;background:#fff;transform:translate(-50%,-50%)}.hotbar{position:absolute;bottom:18px;left:50%;display:flex;transform:translateX(-50%)}.slot{position:relative;display:flex;width:60px;height:60px;align-items:center;justify-content:center;background:#555 url('/assets/Inventoryslot.png') center/110% 110% no-repeat;border:3px solid transparent;color:#fff;overflow:hidden}.slot.selected{border-color:#fff;box-shadow:0 0 0 2px #222}.slot-icon{display:block;line-height:0}.slot-count{position:absolute;left:3px;bottom:1px;font-size:15px;font-weight:900;color:#fff;line-height:1;text-shadow:1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000;letter-spacing:0.2px;white-space:nowrap}.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.55);color:#fff;pointer-events:auto;z-index:50}.overlay h2{font-size:30px;text-shadow:2px 2px #333}.inventory{background:rgba(0,0,0,.35)}
 
 /* ===== 移动端控制 UI（手机）—— 摇杆/跳跃底线对齐，两侧完全对称 ===== */
 .game-hud.is-mobile{touch-action:none}
@@ -84,18 +99,18 @@
 .mc-sneak.is-on{outline:3px solid #ffe58a}
 
 /* ===== 移动端 hotbar ===== */
-.hotbar.mc-hotbar-mobile{bottom:10px;display:flex;gap:4px}
-.hotbar.mc-hotbar-mobile .slot{width:44px;height:44px}
-.game-root.is-phone .slot-count{font-size:12px}
+.hotbar.mc-hotbar-mobile{bottom:12px;display:flex}
+.hotbar.mc-hotbar-mobile .slot{width:52px;height:52px}
+.game-root.is-phone .slot-count{font-size:13px}
 
 /* 移动端：hotbar 右侧三点“更多/背包”按钮，紧跟物品栏形成一体 */
-.mc-hotbar-more{flex:0 0 auto;width:44px;height:44px;border:2px solid #222;background:#555;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent;outline:none;appearance:none;-webkit-appearance:none;padding:0;font:inherit;border-radius:0;letter-spacing:1px;line-height:1}
+.mc-hotbar-more{flex:0 0 auto;width:58px;height:58px;border:2px solid #222;background:#555;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent;outline:none;appearance:none;-webkit-appearance:none;padding:0;font:inherit;border-radius:0;letter-spacing:1px;line-height:1;font-size:20px}
 .mc-hotbar-more:active{filter:brightness(.85)}
-/* 平板：hotbar 下 slot 宽高 64，按钮跟 64 对齐 */
-.game-root.is-tablet .mc-hotbar-more{width:64px;height:64px;letter-spacing:2px;font-size:24px}
-/* 超窄屏 slot 36，按钮跟 36 对齐 */
+/* 平板：hotbar 下 slot 宽高 82，按钮跟 82 对齐 */
+.game-root.is-tablet .mc-hotbar-more{width:82px;height:82px;letter-spacing:2px;font-size:28px}
+/* 超窄屏 slot 54，按钮跟 54 对齐 */
 @media (max-width: 420px) {
-  .game-root.is-phone .mc-hotbar-more{width:36px;height:36px}
+  .game-root.is-phone .mc-hotbar-more{width:54px;height:54px}
 }
 
 /* ===== 平板（Pad）—— 摇杆/跳跃对称放大到 180x180 / b:88 / 锚点 56px ===== */
@@ -107,7 +122,8 @@
 .game-root.is-tablet .mc-place{right:192px;bottom:382px;width:80px;height:80px;font-size:36px}
 .game-root.is-tablet .mc-sneak{right:192px;bottom:292px;width:80px;height:80px;font-size:32px}
 .game-root.is-tablet .bars.top-left{font-size:22px;gap:8px}
-.game-root.is-tablet .hotbar.mc-hotbar-mobile .slot{width:64px;height:64px}
+.game-root.is-tablet .hotbar.mc-hotbar-mobile .slot{width:76px;height:76px}
+.game-root.is-tablet .slot-count{font-size:16px}
 .game-root.is-tablet .crosshair{width:24px;height:24px}
 .game-root.is-tablet .crosshair-v{width:2.5px;height:24px}
 .game-root.is-tablet .crosshair-h{width:24px;height:2.5px}
@@ -121,9 +137,14 @@
   /* 超窄屏 place(上) bottom=258, sneak(下) bottom=198：两格高各 52，中间 8 空隙 → 顶底边界正确不重叠 */
   .game-root.is-phone .mc-place{right:98px;bottom:258px;width:52px;height:52px;font-size:22px}
   .game-root.is-phone .mc-sneak{right:98px;bottom:198px;width:52px;height:52px;font-size:20px}
-  .game-root.is-phone .hotbar.mc-hotbar-mobile .slot{width:36px;height:36px;border-width:2px}
+  .game-root.is-phone .hotbar.mc-hotbar-mobile .slot{width:48px;height:48px;border-width:2px}
   .game-root.is-phone .bars.top-left{font-size:16px;left:12px;top:12px}
 }
+
+/* ===== 设置面板：滑块 / 开关 ===== */
+.mc-toggle{min-height:42px;padding:8px 14px;cursor:pointer;font:inherit;border:2px solid #000;background:#3a3a3a;color:#fff;text-align:left;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.mc-toggle.is-on{background:#3f7f3f;outline:2px solid #8f8}
+.mc-field input[type=range]{height:30px;padding:0;accent-color:#6ab04c;cursor:pointer;width:100%}
 
 
 .dark {

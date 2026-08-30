@@ -47,7 +47,9 @@ export function PlayerController() {
     const sz = st.spawn.z
     world.ensureChunk(Math.floor(sx / 16), Math.floor(sz / 16))
     const groundY = world.highestSolid(Math.floor(sx), Math.floor(sz)) + 1
-    resetPlayer(sx + 0.5, Math.max(groundY, st.spawn.y), sz + 0.5)
+    // 出生点固定到真实地表，避免从固定高度（默认 y=40）高处落下来掉血
+    resetPlayer(Math.floor(sx) + 0.5, groundY, Math.floor(sz) + 0.5)
+    st.setSpawn(Math.floor(sx), groundY, Math.floor(sz))
     player.yaw = 0
     player.pitch = -0.7
   }, [world])
@@ -262,9 +264,10 @@ export function PlayerController() {
       st.damage(1)
     } else if (!touchCactusNow) damageAccum.current.cactus = 0
 
-    if (inVoidNow && !isCreative && damageAccum.current.void_ >= 0.5) {
+    if (inVoidNow && damageAccum.current.void_ >= 0.5) {
       damageAccum.current.void_ = 0
-      st.damage(2)
+      // 虚空持续伤害：无视创造模式（创造也能被虚空击杀），每 0.5s 扣 7.5
+      st.damage(7.5, true)
     } else if (!inVoidNow) damageAccum.current.void_ = 0
 
     if (!isCreative && st.hunger >= 20 && st.health < st.maxHealth && damageAccum.current.regen >= 4.0) {
@@ -348,6 +351,7 @@ export function PlayerController() {
       // ===== 自动跳一格台阶（auto-jump）：onGround 在地面上有前进方向 → 设起跳 vy，而不是瞬移 y =====
       if (
         player.onGround && !player.inWater && autoStepCooldownRef.current <= 0 &&
+        settingsRef.current.autoJump && // 设置里可关闭自动跳跃
         (Math.abs(moveX) + Math.abs(moveZ)) > 0.15 // 明确向前移动才触发（避免原地抖）
       ) {
         const hw = PLAYER_WIDTH / 2
@@ -453,12 +457,8 @@ export function PlayerController() {
       player.onGround = res.onGround
     }
 
-    // 世界边界坠落保护（掉出世界底部则受伤/重生由 survival 系统处理）
-    if (player.y < -10) {
-      st.damage(4)
-      const sp = st.spawn
-      resetPlayer(sp.x + 0.5, sp.y, sp.z + 0.5)
-    }
+    // 掉出世界底部（虚空）不在此处重生打断：由上方 inVoidNow 持续扣血致死，
+    // 每 0.5s 扣 7.5，创造模式同样适用。死亡后由 DeathOverlay 选择重生。
 
     // 相机朝向：鼠标移动 + 触屏滑动
     // 触屏灵敏度按屏幕尺寸归一化：整屏滑过 → 水平 ≈ 1.5π (270°)，垂直 ≈ 1.0π (180°)
