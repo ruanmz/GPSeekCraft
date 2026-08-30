@@ -410,14 +410,45 @@ export async function playUiClick(): Promise<void> {
 let miningLoopSource: AudioBufferSourceNode | null = null
 let miningLoopGain: GainNode | null = null
 let miningLoopMaterial: SfxName | null = null
+const originalCache = new Map<string, AudioBuffer>()
+const originalLast = new Map<string, string>()
+const originalNames: Record<string, string[]> = {
+  step_stone: ["stone1", "stone2", "stone3", "stone4", "stone5", "stone6"],
+  step_wood: ["wood1", "wood2", "wood3", "wood4", "wood5", "wood6"],
+  step_sand: ["sand1", "sand2", "sand3", "sand4", "sand5"],
+  step_gravel: ["gravel1", "gravel2", "gravel3", "gravel4"],
+  step_grass: ["grass1", "grass2", "grass3", "grass4", "grass5", "grass6"],
+}
 
-export function startMiningLoop(name: SfxName, opts: PlayOpts = {}): void {
+async function getOriginalBuffer(name: SfxName): Promise<AudioBuffer | null> {
+  const ctx = getAudioCtx()
+  if (!ctx) return null
+  const names = originalNames[name]
+  if (!names) return null
+  const available = names.filter((n) => n !== originalLast.get(name))
+  const stem = available[Math.floor(Math.random() * available.length)] ?? names[0]
+  const key = `${name}:${stem}`
+  originalLast.set(name, stem)
+  const cached = originalCache.get(key)
+  if (cached) return cached
+  try {
+    const response = await fetch(`/assets/sounds/minecraft/step/${stem}.ogg`)
+    if (!response.ok) return null
+    const buffer = await ctx.decodeAudioData(await response.arrayBuffer())
+    originalCache.set(key, buffer)
+    return buffer
+  } catch {
+    return null
+  }
+}
+
+export async function startMiningLoop(name: SfxName, opts: PlayOpts = {}): Promise<void> {
   const ctx = getAudioCtx()
   if (!ctx || !sfxGain) return
   ensureAudioResumed()
   if (miningLoopSource && miningLoopMaterial === name) return
   stopMiningLoop(0.06)
-  const buf = getBuffer(name, Math.floor(Math.random() * SFX_VARIANTS))
+  const buf = (await getOriginalBuffer(name)) ?? getBuffer(name, Math.floor(Math.random() * SFX_VARIANTS))
   if (!buf) return
   const src = ctx.createBufferSource()
   src.buffer = buf

@@ -196,7 +196,7 @@ function Menu() {
           <label className="mc-field">世界名称<input value={name} onChange={(e) => setName(e.target.value)} /></label>
           <label className="mc-field">种子<input value={seed} onChange={(e) => setSeed(Number(e.target.value) || 0)} /></label>
           <button className="mc-button mc-wide" {...makeHandlers(() => setMode(mode === "survival" ? "creative" : "survival"))}>
-            {mode === "survival" ? "���存模式" : "创造模式"}
+            {mode === "survival" ? "生存模式" : "创造模式"}
           </button>
           {error && <p className="mc-hint" style={{ color: "#ffd27d" }}>{error}</p>}
           <button className="mc-button mc-wide" {...makeHandlers(doCreate)}>创建并进入世界</button>

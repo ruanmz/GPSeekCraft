@@ -412,7 +412,10 @@ export function PlayerController() {
       if (player.inWater) {
         player.vy -= GRAVITY * 0.25 * dt
         if (player.vy < -3) player.vy = -3
-        if (k["Space"] || mobileInput.jump) player.vy = 3.2 // 上浮
+        if (k["Space"] || mobileInput.jump) {
+          // 水中跳跃需要明显的上浮冲量，避免每帧重设低速度导致只能贴水面抖动。
+          player.vy = Math.max(player.vy, 5.8)
+        } // 上浮
       } else {
         player.vy -= GRAVITY * dt
         if (player.vy < -TERMINAL_VELOCITY) player.vy = -TERMINAL_VELOCITY

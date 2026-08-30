@@ -594,7 +594,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     // --- 挖掘连续底噪：按住且有目标才播放，切换/松开平滑淡出 ---
     if (pressed && hit && st.gameMode === "survival") {
       const material = miningSfxForBlock(hit.id)
-      startMiningLoop(material, { volume: 0.2, pitch: breakTuneForBlock(hit.id).pitch })
+      void startMiningLoop(material, { volume: 0.2, pitch: breakTuneForBlock(hit.id).pitch })
     } else if (!pressed || !hit) {
       stopMiningLoop(0.09)
     }

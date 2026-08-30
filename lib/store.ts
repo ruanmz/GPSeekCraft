@@ -228,11 +228,12 @@ export const useGame = create<GameState>((set, get) => ({
   loadSaveById: (id) => {
     const data = getSave(id)
     if (!data) return false
+    const gameMode: GameMode = data.gameMode === "creative" ? "creative" : "survival"
     const world = new World(data.seed, data.edits)
     set({
       world,
       seed: data.seed,
-      gameMode: data.gameMode,
+      gameMode,
       worldName: data.name,
       saveId: data.id,
       health: data.health ?? 20,
