@@ -13,6 +13,7 @@ import {
   playSfx,
   ensureAudioResumed,
   breakTuneForBlock,
+  miningSfxForBlock,
   placeTuneForBlock,
 } from "@/lib/sound"
 import { mobileInput, detectMobileMode } from "@/lib/player-ref"
@@ -206,12 +207,12 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
   const miningProgress = useRef(0) // 0..1
   // 创造模式连挖冷却
   const lastCreativeBreak = useRef(0)
-  // 放置按钮上升沿检测（移动端 placePressed 一次性放一块）
+  // 放置按钮上升沿检测（���动端 placePressed 一次性放一块）
   const lastPlacePressed = useRef(false)
   // 右键长按连续放置：1 秒间隔
   const placingPressed = useRef(false)
   const placeCooldownRef = useRef(0)
-  // 日志节流
+  // 日志节���
   const logThrottle = useRef<Record<string, number>>({})
   const throttleLog = (key: string, msg: () => string, intervalMs = 400) => {
     const now = performance.now()
@@ -302,9 +303,8 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
       lastSfxStageRef.current = stage
       const { pan, atten } = spatialFor(hit.x, hit.y, hit.z)
       const tune = breakTuneForBlock(hit.id)
-      // block_hit 比 break 轻一点，再按硬度稍作微调
       const pitch = tune.pitch * (0.96 + Math.random() * 0.08)
-      playSfx("block_hit", { volume: 0.6 * tune.volume * atten, pitch, pan })
+      playSfx(miningSfxForBlock(hit.id), { volume: 0.38 * atten, pitch, pan })
     }
   }
 
@@ -336,7 +336,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     const { pan, atten } = spatialFor(hit.x, hit.y, hit.z)
     const tune = breakTuneForBlock(hit.id)
     const pitch = tune.pitch * (0.94 + Math.random() * 0.12)
-    playSfx("block_break", { volume: tune.volume * atten, pitch, pan })
+    playSfx(miningSfxForBlock(hit.id), { volume: tune.volume * 0.95 * atten, pitch: pitch * 0.94, pan })
   }
 
   // 放置方块

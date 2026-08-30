@@ -11,6 +11,7 @@ import { InventoryOverlay } from "@/components/ui-game/inventory-overlay"
 import { FurnaceOverlay } from "@/components/ui-game/furnace-overlay"
 import { ItemToast } from "@/components/ui-game/toast"
 import { UnderwaterOverlay } from "@/components/ui-game/underwater-overlay"
+import { FireOverlay } from "@/components/ui-game/fire-overlay"
 import { DebugOverlay } from "@/components/ui-game/debug-overlay"
 import { getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
@@ -358,7 +359,11 @@ function Game() {
       className={`game-root ${isMobile ? (isTablet ? "is-tablet" : "is-phone") : "is-desktop"}`}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <GameScene />
+      <div className="game-viewport">
+        <GameScene />
+        <UnderwaterOverlay />
+        <FireOverlay />
+      </div>
       <div className={`game-hud ${isMobile ? "is-mobile" : ""}`} aria-live="polite">
         <div className={`bars ${isMobile ? "top-left" : "center"}`}>
           {gameMode !== "creative" && <McHealthBar health={health} maxHealth={20} />}
@@ -451,7 +456,6 @@ function Game() {
       {(overlay === "inventory" || overlay === "crafting") && <InventoryOverlay />}
       {overlay === "furnace" && <FurnaceOverlay />}
       <DebugOverlay />
-      <UnderwaterOverlay />
       <ItemToast />
     </main>
   )

@@ -490,11 +490,43 @@ export interface BlockSfxTune {
   pitch: number
 }
 
+type BlockMaterial = "soft" | "stone" | "sand" | "wood" | "glass" | "metal" | "snow"
+
+function materialForBlock(blockId: BlockId): BlockMaterial {
+  switch (BLOCK_DEFS[blockId]?.key) {
+    case "SAND": case "GRAVEL": return "sand"
+    case "LOG": case "PLANKS": case "CRAFTING_TABLE": case "LEAVES": return "wood"
+    case "SNOW": case "ICE": case "SNOW_GRASS": return "snow"
+    case "GLASS": return "glass"
+    case "IRON_BLOCK": case "GOLD_BLOCK": case "DIAMOND_BLOCK": case "FURNACE": return "metal"
+    case "STONE": case "COBBLESTONE": case "SANDSTONE": case "COAL_ORE": case "IRON_ORE": case "GOLD_ORE": case "DIAMOND_ORE": case "BRICK": case "GLOWSTONE": return "stone"
+    default: return "soft"
+  }
+}
+
+// 挖掘音色按材质复用已调好的柔和颗粒音，避免统一的高频 click。
+export function miningSfxForBlock(blockId: BlockId): SfxName {
+  switch (materialForBlock(blockId)) {
+    case "stone": case "metal": case "glass": return "step_stone"
+    case "sand": return "step_sand"
+    case "wood": return "step_wood"
+    case "snow": return "step_snow"
+    default: return "step_grass"
+  }
+}
+
 export function breakTuneForBlock(blockId: BlockId): BlockSfxTune {
-  const h = Math.max(0, BLOCK_DEFS[blockId]?.hardness ?? 1)
-  const pitch = Math.max(0.7, 1.2 - h * 0.15)
-  const volume = 0.8 + Math.min(0.4, h * 0.08)
-  return { volume, pitch }
+  const material = materialForBlock(blockId)
+  const tune: Record<BlockMaterial, BlockSfxTune> = {
+    soft: { volume: 0.52, pitch: 0.92 },
+    stone: { volume: 0.58, pitch: 0.78 },
+    sand: { volume: 0.46, pitch: 1.04 },
+    wood: { volume: 0.5, pitch: 0.88 },
+    glass: { volume: 0.4, pitch: 1.16 },
+    metal: { volume: 0.48, pitch: 0.72 },
+    snow: { volume: 0.38, pitch: 1.08 },
+  }
+  return tune[material]
 }
 
 export function placeTuneForBlock(blockId: BlockId): BlockSfxTune {

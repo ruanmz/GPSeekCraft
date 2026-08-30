@@ -247,17 +247,20 @@ export function PlayerController() {
             if ((world.getBlock(cx, cy, cz) ?? 0) === BLOCKS.CACTUS) { touchCactusNow = true; break outer }
     }
     const inVoidNow = player.y < -32
+    const isCreative = st.gameMode === "creative"
+    const now = performance.now()
+    if (inLavaNow && !isCreative) player.burningUntil = Math.max(player.burningUntil, now + 5000)
+    const burningNow = player.burningUntil > now
 
     damageAccum.current.lava += rawDelta
     damageAccum.current.cactus += rawDelta
     damageAccum.current.void_ += rawDelta
     damageAccum.current.regen += rawDelta
 
-    const isCreative = st.gameMode === "creative"
-    if (inLavaNow && !isCreative && damageAccum.current.lava >= 0.5) {
+    if (burningNow && !isCreative && damageAccum.current.lava >= 0.5) {
       damageAccum.current.lava = 0
       st.damage(2)
-    } else if (!inLavaNow) damageAccum.current.lava = 0
+    } else if (!burningNow) damageAccum.current.lava = 0
 
     if (touchCactusNow && !isCreative && damageAccum.current.cactus >= 0.5) {
       damageAccum.current.cactus = 0
