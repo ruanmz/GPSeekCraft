@@ -407,6 +407,48 @@ export async function playUiClick(): Promise<void> {
   }
 }
 
+let miningLoopSource: AudioBufferSourceNode | null = null
+let miningLoopGain: GainNode | null = null
+let miningLoopMaterial: SfxName | null = null
+
+export function startMiningLoop(name: SfxName, opts: PlayOpts = {}): void {
+  const ctx = getAudioCtx()
+  if (!ctx || !sfxGain) return
+  ensureAudioResumed()
+  if (miningLoopSource && miningLoopMaterial === name) return
+  stopMiningLoop(0.06)
+  const buf = getBuffer(name, Math.floor(Math.random() * SFX_VARIANTS))
+  if (!buf) return
+  const src = ctx.createBufferSource()
+  src.buffer = buf
+  src.loop = true
+  src.playbackRate.value = Math.max(0.8, Math.min(1.2, opts.pitch ?? 1))
+  const gain = ctx.createGain()
+  gain.gain.setValueAtTime(0.001, ctx.currentTime)
+  gain.gain.linearRampToValueAtTime(Math.max(0, Math.min(1, opts.volume ?? 0.28)), ctx.currentTime + 0.12)
+  src.connect(gain)
+  gain.connect(sfxGain)
+  src.start()
+  miningLoopSource = src
+  miningLoopGain = gain
+  miningLoopMaterial = name
+}
+
+export function stopMiningLoop(fadeSeconds = 0.1): void {
+  const ctx = getAudioCtx()
+  const src = miningLoopSource
+  const gain = miningLoopGain
+  miningLoopSource = null
+  miningLoopGain = null
+  miningLoopMaterial = null
+  if (!ctx || !src || !gain) return
+  const now = ctx.currentTime
+  gain.gain.cancelScheduledValues(now)
+  gain.gain.setValueAtTime(Math.max(0.001, gain.gain.value), now)
+  gain.gain.linearRampToValueAtTime(0.001, now + fadeSeconds)
+  try { src.stop(now + fadeSeconds + 0.02) } catch { /* 已停止 */ }
+}
+
 export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
   const ctx = getAudioCtx()
   if (!ctx || !sfxGain) return
@@ -444,6 +486,8 @@ export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
 }
 
 // ---------- 方块材质 → 脚步声映射 ----------
+// 连续挖掘使用脚步音频仅作低音量纹理底噪，主节奏由循环生命周期控制，避免球类点按感。
+
 export function stepSfxForBlock(blockId: BlockId): SfxName {
   const def = BLOCK_DEFS[blockId]
   const key = def?.key

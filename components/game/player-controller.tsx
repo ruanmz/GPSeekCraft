@@ -47,9 +47,11 @@ export function PlayerController() {
     const sz = st.spawn.z
     world.ensureChunk(Math.floor(sx / 16), Math.floor(sz / 16))
     const groundY = world.highestSolid(Math.floor(sx), Math.floor(sz)) + 1
-    // 出生点固定到真实地表，避免从固定高度（默认 y=40）高处落下来掉血
-    resetPlayer(Math.floor(sx) + 0.5, groundY, Math.floor(sz) + 0.5)
-    st.setSpawn(Math.floor(sx), groundY, Math.floor(sz))
+    // 新世界才初始化到地表；读档必须保留地下的精确坐标。
+    if (!st.saveId || !player.ready) {
+      resetPlayer(Math.floor(sx) + 0.5, groundY, Math.floor(sz) + 0.5)
+      st.setSpawn(Math.floor(sx), groundY, Math.floor(sz))
+    }
     player.yaw = 0
     player.pitch = -0.7
   }, [world])

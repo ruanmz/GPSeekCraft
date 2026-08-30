@@ -7,7 +7,7 @@ import { getSave, upsertSave } from "./save"
 import { World } from "./world"
 import { matchRecipe, SMELTING, fuelBurnTime, smeltResult } from "./crafting"
 import { worldEvents, EV_ITEM_DROP, EV_TELEPORT } from "@/lib/emitter"
-import { player } from "@/lib/player-ref"
+import { player, resetPlayer } from "@/lib/player-ref"
 import { loadGlobalSettings, saveGlobalSettings, type Settings } from "./settings"
 
 export type Screen = "menu" | "loading" | "playing" | "settings" | "credits"
@@ -254,11 +254,11 @@ export const useGame = create<GameState>((set, get) => ({
     })
     // PlayerController 会先按 spawn 把玩家放到地面，随后精确传回存档位置
     const p = data.player ?? { x: 0, y: 40, z: 0 }
-    setTimeout(() => {
-      worldEvents.emit(EV_TELEPORT, { x: p.x, y: p.y, z: p.z })
-      player.yaw = p.yaw ?? 0
-      player.pitch = p.pitch ?? -0.7
-    }, 80)
+    // 在 PlayerController 挂载前就恢复全局玩家引用，避免传送事件丢失。
+    resetPlayer(p.x, p.y, p.z)
+    player.yaw = p.yaw ?? 0
+    player.pitch = p.pitch ?? -0.7
+    worldEvents.emit(EV_TELEPORT, { x: p.x, y: p.y, z: p.z })
     return true
   },
 

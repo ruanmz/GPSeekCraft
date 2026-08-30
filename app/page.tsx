@@ -196,7 +196,7 @@ function Menu() {
           <label className="mc-field">世界名称<input value={name} onChange={(e) => setName(e.target.value)} /></label>
           <label className="mc-field">种子<input value={seed} onChange={(e) => setSeed(Number(e.target.value) || 0)} /></label>
           <button className="mc-button mc-wide" {...makeHandlers(() => setMode(mode === "survival" ? "creative" : "survival"))}>
-            {mode === "survival" ? "生存模式" : "创造模式"}
+            {mode === "survival" ? "���存模式" : "创造模式"}
           </button>
           {error && <p className="mc-hint" style={{ color: "#ffd27d" }}>{error}</p>}
           <button className="mc-button mc-wide" {...makeHandlers(doCreate)}>创建并进入世界</button>
@@ -319,12 +319,15 @@ function Game() {
   // 自动存档：每 15s 存一次；离开游玩（回菜单）时再存一次
   useEffect(() => {
     if (screen !== "playing") return
-    const t = setInterval(() => {
-      try { saveCurrentGame() } catch { /* noop */ }
-    }, 15000)
+    const persist = () => { try { saveCurrentGame() } catch { /* noop */ } }
+    const t = setInterval(persist, 5000)
+    window.addEventListener("beforeunload", persist)
+    document.addEventListener("visibilitychange", persist)
     return () => {
       clearInterval(t)
-      try { saveCurrentGame() } catch { /* noop */ }
+      window.removeEventListener("beforeunload", persist)
+      document.removeEventListener("visibilitychange", persist)
+      persist()
     }
   }, [screen, saveCurrentGame])
   // 每个 hotbar 槽位的长按定时器 + 长按是否已触发 的 ref，放在顶层（数量固定 9 个，用 useMemo 初始化一次即可）

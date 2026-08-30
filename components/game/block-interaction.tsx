@@ -14,6 +14,8 @@ import {
   ensureAudioResumed,
   breakTuneForBlock,
   miningSfxForBlock,
+  startMiningLoop,
+  stopMiningLoop,
   placeTuneForBlock,
 } from "@/lib/sound"
 import { mobileInput, detectMobileMode } from "@/lib/player-ref"
@@ -567,7 +569,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     }
 
     // ===== 挖掘按下状态：PC 端 = 左键(miningPressed.current)；移动端 = 仅 mc-mine 按钮(mobileInput.minePressed)
-    // 注意：移动端任何手长按/点击屏幕（包括空白区、摇杆上的长按）都绝对不触发挖掘
+    // 注意：移动端任何手长按/���击屏幕（包括空白区、摇杆上的长按）都绝对不触发挖掘
     const pressed = mobile ? mobileInput.minePressed : (miningPressed.current || mobileInput.minePressed)
 
     // --- raycast 节流日志（每 0.5s，方便知道"为什么没命中方块"）---
@@ -588,6 +590,14 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     }
     // 供 F3 调试面板读取当前指向的方块
     debugTarget.block = hit ? hit.id : null
+
+    // --- 挖掘连续底噪：按住且有目标才播放，切换/松开平滑淡出 ---
+    if (pressed && hit && st.gameMode === "survival") {
+      const material = miningSfxForBlock(hit.id)
+      startMiningLoop(material, { volume: 0.2, pitch: breakTuneForBlock(hit.id).pitch })
+    } else if (!pressed || !hit) {
+      stopMiningLoop(0.09)
+    }
 
     // --- 挖掘进度累积（仅生存模式）---
     if (st.gameMode === "survival" && pressed) {
