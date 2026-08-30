@@ -12,7 +12,6 @@ export interface PlayerRuntime {
   inWater: boolean
   headUnderWater: boolean
   headUnderLava: boolean
-  burningUntil: number
   sprinting: boolean
   sneaking: boolean
   // 上一帧脚下方块，用于摔落伤害计算
@@ -33,7 +32,6 @@ export const player: PlayerRuntime = {
   inWater: false,
   headUnderWater: false,
   headUnderLava: false,
-  burningUntil: 0,
   sprinting: false,
   sneaking: false,
   fallStartY: 40,
@@ -123,8 +121,5 @@ export function resetPlayer(x: number, y: number, z: number) {
   player.vz = 0
   player.onGround = false
   player.fallStartY = y
-  player.headUnderWater = false
-  player.headUnderLava = false
-  player.burningUntil = 0
   player.ready = true
 }

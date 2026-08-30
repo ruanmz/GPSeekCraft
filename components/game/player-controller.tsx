@@ -47,11 +47,9 @@ export function PlayerController() {
     const sz = st.spawn.z
     world.ensureChunk(Math.floor(sx / 16), Math.floor(sz / 16))
     const groundY = world.highestSolid(Math.floor(sx), Math.floor(sz)) + 1
-    // 新世界才初始化到地表；读档必须保留地下的精确坐标。
-    if (!st.saveId || !player.ready) {
-      resetPlayer(Math.floor(sx) + 0.5, groundY, Math.floor(sz) + 0.5)
-      st.setSpawn(Math.floor(sx), groundY, Math.floor(sz))
-    }
+    // 出生点固定到真实地表，避免从固定高度（默认 y=40）高处落下来掉血
+    resetPlayer(Math.floor(sx) + 0.5, groundY, Math.floor(sz) + 0.5)
+    st.setSpawn(Math.floor(sx), groundY, Math.floor(sz))
     player.yaw = 0
     player.pitch = -0.7
   }, [world])
@@ -249,20 +247,17 @@ export function PlayerController() {
             if ((world.getBlock(cx, cy, cz) ?? 0) === BLOCKS.CACTUS) { touchCactusNow = true; break outer }
     }
     const inVoidNow = player.y < -32
-    const isCreative = st.gameMode === "creative"
-    const now = performance.now()
-    if (inLavaNow && !isCreative) player.burningUntil = Math.max(player.burningUntil, now + 5000)
-    const burningNow = player.burningUntil > now
 
     damageAccum.current.lava += rawDelta
     damageAccum.current.cactus += rawDelta
     damageAccum.current.void_ += rawDelta
     damageAccum.current.regen += rawDelta
 
-    if (burningNow && !isCreative && damageAccum.current.lava >= 0.5) {
+    const isCreative = st.gameMode === "creative"
+    if (inLavaNow && !isCreative && damageAccum.current.lava >= 0.5) {
       damageAccum.current.lava = 0
       st.damage(2)
-    } else if (!burningNow) damageAccum.current.lava = 0
+    } else if (!inLavaNow) damageAccum.current.lava = 0
 
     if (touchCactusNow && !isCreative && damageAccum.current.cactus >= 0.5) {
       damageAccum.current.cactus = 0
@@ -412,10 +407,7 @@ export function PlayerController() {
       if (player.inWater) {
         player.vy -= GRAVITY * 0.25 * dt
         if (player.vy < -3) player.vy = -3
-        if (k["Space"] || mobileInput.jump) {
-          // 水中跳跃需要明显的上浮冲量，避免每帧重设低速度导致只能贴水面抖动。
-          player.vy = Math.max(player.vy, 5.8)
-        } // 上浮
+        if (k["Space"] || mobileInput.jump) player.vy = 3.2 // 上浮
       } else {
         player.vy -= GRAVITY * dt
         if (player.vy < -TERMINAL_VELOCITY) player.vy = -TERMINAL_VELOCITY

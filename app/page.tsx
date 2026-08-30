@@ -11,7 +11,6 @@ import { InventoryOverlay } from "@/components/ui-game/inventory-overlay"
 import { FurnaceOverlay } from "@/components/ui-game/furnace-overlay"
 import { ItemToast } from "@/components/ui-game/toast"
 import { UnderwaterOverlay } from "@/components/ui-game/underwater-overlay"
-import { FireOverlay } from "@/components/ui-game/fire-overlay"
 import { DebugOverlay } from "@/components/ui-game/debug-overlay"
 import { getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
@@ -319,15 +318,12 @@ function Game() {
   // 自动存档：每 15s 存一次；离开游玩（回菜单）时再存一次
   useEffect(() => {
     if (screen !== "playing") return
-    const persist = () => { try { saveCurrentGame() } catch { /* noop */ } }
-    const t = setInterval(persist, 5000)
-    window.addEventListener("beforeunload", persist)
-    document.addEventListener("visibilitychange", persist)
+    const t = setInterval(() => {
+      try { saveCurrentGame() } catch { /* noop */ }
+    }, 15000)
     return () => {
       clearInterval(t)
-      window.removeEventListener("beforeunload", persist)
-      document.removeEventListener("visibilitychange", persist)
-      persist()
+      try { saveCurrentGame() } catch { /* noop */ }
     }
   }, [screen, saveCurrentGame])
   // 每个 hotbar 槽位的长按定时器 + 长按是否已触发 的 ref，放在顶层（数量固定 9 个，用 useMemo 初始化一次即可）
@@ -362,11 +358,7 @@ function Game() {
       className={`game-root ${isMobile ? (isTablet ? "is-tablet" : "is-phone") : "is-desktop"}`}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <div className="game-viewport">
-        <GameScene />
-        <UnderwaterOverlay />
-        <FireOverlay />
-      </div>
+      <GameScene />
       <div className={`game-hud ${isMobile ? "is-mobile" : ""}`} aria-live="polite">
         <div className={`bars ${isMobile ? "top-left" : "center"}`}>
           {gameMode !== "creative" && <McHealthBar health={health} maxHealth={20} />}
@@ -459,6 +451,7 @@ function Game() {
       {(overlay === "inventory" || overlay === "crafting") && <InventoryOverlay />}
       {overlay === "furnace" && <FurnaceOverlay />}
       <DebugOverlay />
+      <UnderwaterOverlay />
       <ItemToast />
     </main>
   )

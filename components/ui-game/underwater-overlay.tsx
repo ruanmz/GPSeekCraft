@@ -34,7 +34,7 @@ export function UnderwaterOverlay() {
         position: "absolute",
         inset: 0,
         pointerEvents: "none",
-        zIndex: 2,
+        zIndex: 20,
         opacity: 0,
         transition: "opacity 0.3s ease",
         backdropFilter: "blur(2px)",

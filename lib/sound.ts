@@ -407,79 +407,6 @@ export async function playUiClick(): Promise<void> {
   }
 }
 
-let miningLoopSource: AudioBufferSourceNode | null = null
-let miningLoopGain: GainNode | null = null
-let miningLoopMaterial: SfxName | null = null
-const originalCache = new Map<string, AudioBuffer>()
-const originalLast = new Map<string, string>()
-const originalNames: Record<string, string[]> = {
-  step_stone: ["stone1", "stone2", "stone3", "stone4", "stone5", "stone6"],
-  step_wood: ["wood1", "wood2", "wood3", "wood4", "wood5", "wood6"],
-  step_sand: ["sand1", "sand2", "sand3", "sand4", "sand5"],
-  step_gravel: ["gravel1", "gravel2", "gravel3", "gravel4"],
-  step_grass: ["grass1", "grass2", "grass3", "grass4", "grass5", "grass6"],
-}
-
-async function getOriginalBuffer(name: SfxName): Promise<AudioBuffer | null> {
-  const ctx = getAudioCtx()
-  if (!ctx) return null
-  const names = originalNames[name]
-  if (!names) return null
-  const available = names.filter((n) => n !== originalLast.get(name))
-  const stem = available[Math.floor(Math.random() * available.length)] ?? names[0]
-  const key = `${name}:${stem}`
-  originalLast.set(name, stem)
-  const cached = originalCache.get(key)
-  if (cached) return cached
-  try {
-    const response = await fetch(`/assets/sounds/minecraft/step/${stem}.ogg`)
-    if (!response.ok) return null
-    const buffer = await ctx.decodeAudioData(await response.arrayBuffer())
-    originalCache.set(key, buffer)
-    return buffer
-  } catch {
-    return null
-  }
-}
-
-export async function startMiningLoop(name: SfxName, opts: PlayOpts = {}): Promise<void> {
-  const ctx = getAudioCtx()
-  if (!ctx || !sfxGain) return
-  ensureAudioResumed()
-  if (miningLoopSource && miningLoopMaterial === name) return
-  stopMiningLoop(0.06)
-  const buf = (await getOriginalBuffer(name)) ?? getBuffer(name, Math.floor(Math.random() * SFX_VARIANTS))
-  if (!buf) return
-  const src = ctx.createBufferSource()
-  src.buffer = buf
-  src.loop = true
-  src.playbackRate.value = Math.max(0.8, Math.min(1.2, opts.pitch ?? 1))
-  const gain = ctx.createGain()
-  gain.gain.setValueAtTime(0.001, ctx.currentTime)
-  gain.gain.linearRampToValueAtTime(Math.max(0, Math.min(1, opts.volume ?? 0.28)), ctx.currentTime + 0.12)
-  src.connect(gain)
-  gain.connect(sfxGain)
-  src.start()
-  miningLoopSource = src
-  miningLoopGain = gain
-  miningLoopMaterial = name
-}
-
-export function stopMiningLoop(fadeSeconds = 0.1): void {
-  const ctx = getAudioCtx()
-  const src = miningLoopSource
-  const gain = miningLoopGain
-  miningLoopSource = null
-  miningLoopGain = null
-  miningLoopMaterial = null
-  if (!ctx || !src || !gain) return
-  const now = ctx.currentTime
-  gain.gain.cancelScheduledValues(now)
-  gain.gain.setValueAtTime(Math.max(0.001, gain.gain.value), now)
-  gain.gain.linearRampToValueAtTime(0.001, now + fadeSeconds)
-  try { src.stop(now + fadeSeconds + 0.02) } catch { /* 已停止 */ }
-}
-
 export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
   const ctx = getAudioCtx()
   if (!ctx || !sfxGain) return
@@ -517,8 +444,6 @@ export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
 }
 
 // ---------- 方块材质 → 脚步声映射 ----------
-// 连续挖掘使用脚步音频仅作低音量纹理底噪，主节奏由循环生命周期控制，避免球类点按感。
-
 export function stepSfxForBlock(blockId: BlockId): SfxName {
   const def = BLOCK_DEFS[blockId]
   const key = def?.key
@@ -565,43 +490,11 @@ export interface BlockSfxTune {
   pitch: number
 }
 
-type BlockMaterial = "soft" | "stone" | "sand" | "wood" | "glass" | "metal" | "snow"
-
-function materialForBlock(blockId: BlockId): BlockMaterial {
-  switch (BLOCK_DEFS[blockId]?.key) {
-    case "SAND": case "GRAVEL": return "sand"
-    case "LOG": case "PLANKS": case "CRAFTING_TABLE": case "LEAVES": return "wood"
-    case "SNOW": case "ICE": case "SNOW_GRASS": return "snow"
-    case "GLASS": return "glass"
-    case "IRON_BLOCK": case "GOLD_BLOCK": case "DIAMOND_BLOCK": case "FURNACE": return "metal"
-    case "STONE": case "COBBLESTONE": case "SANDSTONE": case "COAL_ORE": case "IRON_ORE": case "GOLD_ORE": case "DIAMOND_ORE": case "BRICK": case "GLOWSTONE": return "stone"
-    default: return "soft"
-  }
-}
-
-// 挖掘音色按材质复用已调好的柔和颗粒音，避免统一的高频 click。
-export function miningSfxForBlock(blockId: BlockId): SfxName {
-  switch (materialForBlock(blockId)) {
-    case "stone": case "metal": case "glass": return "step_stone"
-    case "sand": return "step_sand"
-    case "wood": return "step_wood"
-    case "snow": return "step_snow"
-    default: return "step_grass"
-  }
-}
-
 export function breakTuneForBlock(blockId: BlockId): BlockSfxTune {
-  const material = materialForBlock(blockId)
-  const tune: Record<BlockMaterial, BlockSfxTune> = {
-    soft: { volume: 0.52, pitch: 0.92 },
-    stone: { volume: 0.58, pitch: 0.78 },
-    sand: { volume: 0.46, pitch: 1.04 },
-    wood: { volume: 0.5, pitch: 0.88 },
-    glass: { volume: 0.4, pitch: 1.16 },
-    metal: { volume: 0.48, pitch: 0.72 },
-    snow: { volume: 0.38, pitch: 1.08 },
-  }
-  return tune[material]
+  const h = Math.max(0, BLOCK_DEFS[blockId]?.hardness ?? 1)
+  const pitch = Math.max(0.7, 1.2 - h * 0.15)
+  const volume = 0.8 + Math.min(0.4, h * 0.08)
+  return { volume, pitch }
 }
 
 export function placeTuneForBlock(blockId: BlockId): BlockSfxTune {

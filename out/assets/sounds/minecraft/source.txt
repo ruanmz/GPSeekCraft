@@ -1,1 +1,0 @@
-来源：Mojang Minecraft Java Edition 1.20.4 asset index；对象通过 resources.download.minecraft.net 下载。

@@ -13,9 +13,6 @@ import {
   playSfx,
   ensureAudioResumed,
   breakTuneForBlock,
-  miningSfxForBlock,
-  startMiningLoop,
-  stopMiningLoop,
   placeTuneForBlock,
 } from "@/lib/sound"
 import { mobileInput, detectMobileMode } from "@/lib/player-ref"
@@ -209,12 +206,12 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
   const miningProgress = useRef(0) // 0..1
   // 创造模式连挖冷却
   const lastCreativeBreak = useRef(0)
-  // 放置按钮上升沿检测（���动端 placePressed 一次性放一块）
+  // 放置按钮上升沿检测（移动端 placePressed 一次性放一块）
   const lastPlacePressed = useRef(false)
   // 右键长按连续放置：1 秒间隔
   const placingPressed = useRef(false)
   const placeCooldownRef = useRef(0)
-  // 日志节���
+  // 日志节流
   const logThrottle = useRef<Record<string, number>>({})
   const throttleLog = (key: string, msg: () => string, intervalMs = 400) => {
     const now = performance.now()
@@ -305,8 +302,9 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
       lastSfxStageRef.current = stage
       const { pan, atten } = spatialFor(hit.x, hit.y, hit.z)
       const tune = breakTuneForBlock(hit.id)
+      // block_hit 比 break 轻一点，再按硬度稍作微调
       const pitch = tune.pitch * (0.96 + Math.random() * 0.08)
-      playSfx(miningSfxForBlock(hit.id), { volume: 0.38 * atten, pitch, pan })
+      playSfx("block_hit", { volume: 0.6 * tune.volume * atten, pitch, pan })
     }
   }
 
@@ -338,7 +336,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     const { pan, atten } = spatialFor(hit.x, hit.y, hit.z)
     const tune = breakTuneForBlock(hit.id)
     const pitch = tune.pitch * (0.94 + Math.random() * 0.12)
-    playSfx(miningSfxForBlock(hit.id), { volume: tune.volume * 0.95 * atten, pitch: pitch * 0.94, pan })
+    playSfx("block_break", { volume: tune.volume * atten, pitch, pan })
   }
 
   // 放置方块
@@ -569,7 +567,7 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     }
 
     // ===== 挖掘按下状态：PC 端 = 左键(miningPressed.current)；移动端 = 仅 mc-mine 按钮(mobileInput.minePressed)
-    // 注意：移动端任何手长按/���击屏幕（包括空白区、摇杆上的长按）都绝对不触发挖掘
+    // 注意：移动端任何手长按/点击屏幕（包括空白区、摇杆上的长按）都绝对不触发挖掘
     const pressed = mobile ? mobileInput.minePressed : (miningPressed.current || mobileInput.minePressed)
 
     // --- raycast 节流日志（每 0.5s，方便知道"为什么没命中方块"）---
@@ -590,14 +588,6 @@ export function BlockInteraction({ highlightRef }: { highlightRef: React.RefObje
     }
     // 供 F3 调试面板读取当前指向的方块
     debugTarget.block = hit ? hit.id : null
-
-    // --- 挖掘连续底噪：按住且有目标才播放，切换/松开平滑淡出 ---
-    if (pressed && hit && st.gameMode === "survival") {
-      const material = miningSfxForBlock(hit.id)
-      void startMiningLoop(material, { volume: 0.2, pitch: breakTuneForBlock(hit.id).pitch })
-    } else if (!pressed || !hit) {
-      stopMiningLoop(0.09)
-    }
 
     // --- 挖掘进度累积（仅生存模式）---
     if (st.gameMode === "survival" && pressed) {
