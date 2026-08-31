@@ -22,7 +22,12 @@ let audioCtx: AudioContext | null = null
 let masterGain: GainNode | null = null
 let sfxGain: GainNode | null = null
 let musicGain: GainNode | null = null
+let ambientGain: GainNode | null = null
 let musicSource: AudioBufferSourceNode | null = null
+let ambientSource: AudioBufferSourceNode | null = null
+let ambientBuffer: AudioBuffer | null = null
+let ambientLoadPromise: Promise<AudioBuffer | null> | null = null
+let ambientActive = false
 let musicBuffer: AudioBuffer | null = null
 let musicLoadPromise: Promise<AudioBuffer | null> | null = null
 let oggDecoder: OggVorbisDecoder | null = null
@@ -49,6 +54,9 @@ export function getAudioCtx(): AudioContext | null {
     musicGain = audioCtx.createGain()
     musicGain.gain.value = 0.18
     musicGain.connect(masterGain)
+    ambientGain = audioCtx.createGain()
+    ambientGain.gain.value = 0
+    ambientGain.connect(masterGain)
   }
   return audioCtx
 }
@@ -630,6 +638,37 @@ export function ensureMenuMusic(): void {
 export async function ensureEnvironmentMusic(worldTime: number): Promise<void> {
   const paths = worldTime > 0.75 || worldTime < 0.25 ? NIGHT_MUSIC : DAY_MUSIC
   await startMusic("world", paths)
+}
+
+const CAVE_AMBIENT = Array.from({ length: 23 }, (_, index) =>
+  `/assets/minecraft/sounds/ambient/cave/cave${index + 1}.ogg`,
+)
+
+export async function setCaveAmbient(active: boolean): Promise<void> {
+  const ctx = getAudioCtx()
+  if (!ctx || !ambientGain || ambientActive === active) return
+  ambientActive = active
+  if (active) {
+    ambientLoadPromise ??= firstAvailableOgg(CAVE_AMBIENT)
+    ambientBuffer = await ambientLoadPromise
+    if (!ambientBuffer || !ambientActive) return
+    const source = ctx.createBufferSource()
+    source.buffer = ambientBuffer
+    source.loop = true
+    source.connect(ambientGain)
+    source.start()
+    ambientSource = source
+  }
+  ambientGain.gain.setTargetAtTime(active ? 0.11 : 0, ctx.currentTime, 0.35)
+  if (!active && ambientSource) {
+    const source = ambientSource
+    ambientSource = null
+    window.setTimeout(() => {
+      try { source.stop() } catch { /* 已停止 */ }
+      source.disconnect()
+    }, 1200)
+  }
+  musicGain.gain.setTargetAtTime(active ? 0.08 : 0.18, ctx.currentTime, 0.35)
 }
 
 // 防止未使用 import 警告（lint 用）
