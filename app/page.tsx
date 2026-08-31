@@ -15,7 +15,7 @@ import { DebugOverlay } from "@/components/ui-game/debug-overlay"
 import { getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
 import { listSaves, deleteSave, type SaveData } from "@/lib/save"
-import { playUiClick } from "@/lib/sound"
+import { playUiClick, setMusicVolume } from "@/lib/sound"
 
 function getBlockName(id: number) { return getBlock(id).name }
 function getItemName(id: number) { return getItem(id).name }
@@ -65,6 +65,18 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
           type="range" min={2} max={16} step={1}
           value={settings.simulationDistance}
           onChange={(e) => setSettings({ simulationDistance: Number(e.target.value) })}
+        />
+      </label>
+      <label className="mc-field">
+        <span>环境音乐：{Math.round(settings.musicVolume * 100)}%</span>
+        <input
+          type="range" min={0} max={1} step={0.01}
+          value={settings.musicVolume}
+          onChange={(e) => {
+            const musicVolume = Number(e.target.value)
+            setSettings({ musicVolume })
+            setMusicVolume(musicVolume)
+          }}
         />
       </label>
       <button

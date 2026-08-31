@@ -22,7 +22,7 @@ import {
   PLAYER_HEIGHT,
 } from "@/lib/physics"
 import { worldEvents, EV_TELEPORT } from "@/lib/emitter"
-import { playSfx, ensureAudioResumed } from "@/lib/sound"
+import { playSfx, ensureAudioResumed, ensureEnvironmentMusic } from "@/lib/sound"
 import { isSolid, isLiquid, BLOCKS, getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
 import { mobileInput, detectMobileMode } from "@/lib/player-ref"
@@ -40,6 +40,7 @@ export function PlayerController() {
   const autoStepCooldownRef = useRef(0) // 自动跳一格的冷却（秒），避免连续推两次
   const overlayRef = useRef(useGame.getState().overlay)
   const damageAccum = useRef({ lava: 0, cactus: 0, void_: 0, regen: 0, fire: 0 })
+  const lastMusicCheck = useRef(0)
   const settings = useGame((s) => s.settings)
   const settingsRef = useRef(settings)
   settingsRef.current = settings
@@ -238,6 +239,10 @@ export function PlayerController() {
     if (!world || !player.ready) return
     const st = useGame.getState()
     const dt = Math.min(rawDelta, 0.05)
+    if (st.screen === "playing" && performance.now() - lastMusicCheck.current > 3000) {
+      lastMusicCheck.current = performance.now()
+      void ensureEnvironmentMusic(st.worldTime)
+    }
 
     // ================================
     // 环境伤害 / 回血（按秒积累，到阈值触发一次）
