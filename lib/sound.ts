@@ -580,14 +580,21 @@ export function placeTuneForBlock(blockId: BlockId): BlockSfxTune {
   return { volume, pitch }
 }
 
+const MENU_MUSIC = [
+  "/assets/minecraft/sounds/music/menu/beginning_2.ogg",
+  "/assets/minecraft/sounds/music/menu/floating_trees.ogg",
+  "/assets/minecraft/sounds/music/menu/moog_city_2.ogg",
+]
 const DAY_MUSIC = [
   "/assets/minecraft/sounds/music/game/creative/aria_math.ogg",
   "/assets/minecraft/sounds/music/game/creative/biome_fest.ogg",
+  "/assets/minecraft/sounds/music/game/an_ordinary_day.ogg",
 ]
 const NIGHT_MUSIC = [
-  "/assets/minecraft/sounds/music/game/overworld/stand_tall.ogg",
-  "/assets/minecraft/sounds/music/game/overworld/left_to_bloom.ogg",
+  "/assets/minecraft/sounds/music/game/stand_tall.ogg",
+  "/assets/minecraft/sounds/music/game/left_to_bloom.ogg",
 ]
+let activeMusicKind: "menu" | "world" | null = null
 
 export function setMusicVolume(value: number): void {
   const ctx = getAudioCtx()
@@ -595,18 +602,34 @@ export function setMusicVolume(value: number): void {
   musicGain.gain.setTargetAtTime(Math.max(0, Math.min(1, value)), ctx.currentTime, 0.08)
 }
 
-export async function ensureEnvironmentMusic(worldTime: number): Promise<void> {
+async function startMusic(kind: "menu" | "world", paths: string[]): Promise<void> {
   const ctx = getAudioCtx()
-  if (!ctx || !musicGain || musicSource) return
-  musicLoadPromise ??= firstAvailableOgg(worldTime > 0.75 || worldTime < 0.25 ? NIGHT_MUSIC : DAY_MUSIC)
-  musicBuffer = await musicLoadPromise
-  if (!musicBuffer || musicSource) return
+  if (!ctx || !musicGain || activeMusicKind === kind) return
+  ensureAudioResumed()
+  if (musicSource) {
+    try { musicSource.stop() } catch { /* 已停止 */ }
+    musicSource.disconnect()
+    musicSource = null
+  }
+  const buffer = await firstAvailableOgg(paths)
+  if (!buffer || activeMusicKind === kind) return
   const source = ctx.createBufferSource()
-  source.buffer = musicBuffer
+  source.buffer = buffer
   source.loop = true
   source.connect(musicGain)
   source.start()
   musicSource = source
+  musicBuffer = buffer
+  activeMusicKind = kind
+}
+
+export function ensureMenuMusic(): void {
+  void startMusic("menu", MENU_MUSIC)
+}
+
+export async function ensureEnvironmentMusic(worldTime: number): Promise<void> {
+  const paths = worldTime > 0.75 || worldTime < 0.25 ? NIGHT_MUSIC : DAY_MUSIC
+  await startMusic("world", paths)
 }
 
 // 防止未使用 import 警告（lint 用）

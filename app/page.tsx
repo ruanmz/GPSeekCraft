@@ -15,7 +15,7 @@ import { DebugOverlay } from "@/components/ui-game/debug-overlay"
 import { getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
 import { listSaves, deleteSave, type SaveData } from "@/lib/save"
-import { playUiClick, setMusicVolume } from "@/lib/sound"
+import { ensureMenuMusic, playUiClick, setMusicVolume } from "@/lib/sound"
 
 function getBlockName(id: number) { return getBlock(id).name }
 function getItemName(id: number) { return getItem(id).name }
@@ -191,7 +191,7 @@ function Menu() {
 
   const doLoad = (id: string) => {
     try {
-      if (!loadSaveById(id)) setError("读档失败")
+      if (!loadSaveById(id)) setError("读档��败")
     } catch (err) {
       setError("读档失败")
     }
@@ -311,10 +311,13 @@ function Game() {
   })
   // 所有 Minecraft 样式按钮（.mc-button）点击时播放 click.mp3（全局委托，鼠标/触摸皆可）
   useEffect(() => {
-    const onPointer = (e: PointerEvent) => {
-      const t = e.target as Element | null
-      if (t && t.closest && t.closest(".mc-button")) void playUiClick()
-    }
+  const onPointer = (e: PointerEvent) => {
+    // 菜单音乐必须在用户手势内启动，否则会被浏览器自动播放策略拦截。
+    ensureMenuMusic()
+    const t = e.target as Element | null
+    if (t && t.closest && t.closest(".mc-button")) void playUiClick()
+  }
+
     document.addEventListener("pointerdown", onPointer)
     return () => document.removeEventListener("pointerdown", onPointer)
   }, [])
