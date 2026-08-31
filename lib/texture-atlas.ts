@@ -73,7 +73,7 @@ function drawFaceTexture(ctx: CanvasRenderingContext2D, def: BlockDef, face: "to
     }
   }
 
-  if (/PLANKS|FENCE|CRAFTING_TABLE|BOOKSHELF|FENCE_GATE/.test(k)) {
+  if (/PLANKS|FENCE|BOOKSHELF|FENCE_GATE/.test(k)) {
     for (let y = 0; y < PX; y += 4) {
       ctx.fillStyle = `rgba(0,0,0,0.15)`; ctx.fillRect(0, y + (rnd() > 0.5 ? 1 : 0), PX, 1)
       ctx.fillStyle = `rgba(255,255,255,0.08)`; ctx.fillRect(0, y + 1, PX, 1)
@@ -107,8 +107,37 @@ function drawFaceTexture(ctx: CanvasRenderingContext2D, def: BlockDef, face: "to
   if (k === "FURNACE" && face === "side") { ctx.fillStyle = `rgb(40,40,40)`; ctx.fillRect(4, 6, 8, 6); ctx.fillStyle = `rgb(80,50,30)`; ctx.fillRect(5, 7, 6, 4) }
   if (k === "FURNACE" && face === "top") { ctx.fillStyle = `rgb(50,50,50)`; ctx.fillRect(5, 5, 6, 6) }
   if (k === "CRAFTING_TABLE" && face === "top") {
-    ctx.strokeStyle = `rgba(0,0,0,0.4)`; ctx.lineWidth = 1
-    ctx.strokeRect(0.5, 0.5, 15, 15); ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(8, 16); ctx.moveTo(0, 8); ctx.lineTo(16, 8); ctx.stroke()
+    // 原版工作台顶面：四周木板外框 + 中央 3×3 合成网格，网格格带明暗变化
+    // 边缘暗色木框
+    ctx.fillStyle = "rgba(0,0,0,0.28)"; ctx.fillRect(0, 0, PX, 1); ctx.fillRect(0, PX - 1, PX, 1)
+    ctx.fillRect(0, 0, 1, PX); ctx.fillRect(PX - 1, 0, 1, PX)
+    // 中央工作区底色稍亮
+    ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(1, 1, PX - 2, PX - 2)
+    // 3×3 合成网格（每格 4px，带棋盘明暗）
+    for (let gy = 0; gy < 3; gy++) for (let gx = 0; gx < 3; gx++) {
+      const x0 = 2 + gx * 4, y0 = 2 + gy * 4
+      ctx.fillStyle = (gx + gy) % 2 ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.08)"
+      ctx.fillRect(x0, y0, 4, 4)
+    }
+    // 网格线
+    ctx.strokeStyle = "rgba(0,0,0,0.32)"; ctx.lineWidth = 1
+    ctx.beginPath()
+    for (let i = 1; i < 4; i++) { ctx.moveTo(2 + i * 4, 2); ctx.lineTo(2 + i * 4, 14) }
+    for (let i = 1; i < 4; i++) { ctx.moveTo(2, 2 + i * 4); ctx.lineTo(14, 2 + i * 4) }
+    ctx.stroke()
+  }
+  if (k === "CRAFTING_TABLE" && face === "side") {
+    // 原版工作台侧面：多列工具凹槽竖条
+    // 上下横向木条
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(0, 0, PX, 1); ctx.fillRect(0, PX - 1, PX, 1)
+    // 分隔的竖置工具槽：每格一条深色竖缝 + 中间浅色木纹
+    ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth = 1
+    ctx.beginPath()
+    for (let x = 0; x <= PX; x += 4) { ctx.moveTo(x, 1); ctx.lineTo(x, PX - 1) }
+    ctx.stroke()
+    // 每个槽内再画一道工具挂杆（中上位置一条横线）
+    ctx.fillStyle = "rgba(0,0,0,0.18)"
+    for (let x = 1; x < PX; x += 4) ctx.fillRect(x, 5, 3, 1)
   }
   if (k === "GLASS" || k === "ICE") {
     ctx.strokeStyle = `rgba(255,255,255,0.4)`; ctx.lineWidth = 1

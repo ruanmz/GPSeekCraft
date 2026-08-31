@@ -91,43 +91,54 @@ function LoadingScreen() {
   const finishLoad = useGame((s) => s.finishLoad)
   const renderDistance = useGame((s) => s.settings.renderDistance)
   const simulationDistance = useGame((s) => s.settings.simulationDistance)
+  const isNewWorld = useGame((s) => s.isNewWorld)
+  const spawn = useGame((s) => s.spawn)
 
   useEffect(() => {
     if (!world) return
-    // 预生成范围：覆盖模拟距离（含渲染距离）。这样进入游戏后玩家移动时几乎不再需要
-    // 逐帧懒生成区块，从根本上消除游玩卡顿。ensureChunk 幂等，重复生成会直接返回。
-    const rd = Math.max(renderDistance, simulationDistance)
+    // 移动端性能有限：只预生成"渲染距离"（而非模拟距离），并缩小每帧批处理，
+    // 否则一次性生成 289 个高区块会极慢、甚至让移动端标签页崩溃/重载回到主菜单。
+    const mobile = detectMobileMode().isMobile
+    const rd = mobile ? Math.max(2, Math.min(renderDistance, 4)) : Math.max(renderDistance, simulationDistance)
+    // 以玩家实际出生点为中心预生成，而不是 (0,0)。
+    // 否则读档时玩家若已远离出生点，周围没有任何已生成的区块，进游戏会"空无一物"。
+    const scx = Math.floor(spawn.x / 16)
+    const scz = Math.floor(spawn.z / 16)
     const jobs: { cx: number; cz: number }[] = []
     for (let dx = -rd; dx <= rd; dx++)
       for (let dz = -rd; dz <= rd; dz++)
-        jobs.push({ cx: dx, cz: dz })
+        jobs.push({ cx: scx + dx, cz: scz + dz })
     const total = jobs.length
     let done = 0
     let raf = 0
+    let timedOut = false
+    const BATCH = mobile ? 2 : 8
+    const start = performance.now()
     const step = () => {
       // 每帧生成一批，分摊主线程负载，进度条实时反馈
-      const BATCH = 8
       for (let i = 0; i < BATCH && jobs.length > 0; i++) {
         const { cx, cz } = jobs.pop()!
         world.ensureChunk(cx, cz)
         done++
       }
       setLoadProgress(done / total)
-      if (jobs.length > 0) {
+      // 超时兜底：避免移动端生成过慢时一直卡在加载页
+      if (jobs.length > 0 && !timedOut && performance.now() - start < 60000) {
         raf = requestAnimationFrame(step)
       } else {
+        timedOut = true
         finishLoad()
       }
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [world, renderDistance, simulationDistance, setLoadProgress, finishLoad])
+  }, [world, renderDistance, simulationDistance, setLoadProgress, finishLoad, spawn])
 
   const pct = Math.round(loadProgress * 100)
   return (
     <main className="mc-menu">
       <div className="mc-logo">GPSEEKCRAFT</div>
-      <p className="mc-subtitle">正在生成世界…</p>
+      <p className="mc-subtitle">{isNewWorld ? "正在生成世界…" : "正在进入世界…"}</p>
       <div className="load-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div className="load-fill" style={{ width: `${pct}%` }} />
       </div>
@@ -368,6 +379,17 @@ function Game() {
           <span className="crosshair-v" />
           <span className="crosshair-h" />
         </div>
+        {isMobile && (
+          <button
+            className="mc-pause-btn"
+            onClick={() => setOverlay("pause")}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-label="暂停菜单"
+            title="暂停菜单"
+          >
+            ❚❚
+          </button>
+        )}
         <div className={`hotbar ${isMobile ? "mc-hotbar-mobile" : ""}`}>
           {hotbar.map((item, i) => {
             const h = makeHandlers(() => selectHotbar(i))

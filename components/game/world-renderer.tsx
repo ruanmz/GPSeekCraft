@@ -57,8 +57,11 @@ export function WorldRenderer() {
       const rd = useGame.getState().settings.renderDistance
       const sim = useGame.getState().settings.simulationDistance
       const cover = Math.max(rd, sim)
-      const cx = 0
-      const cz = 0
+      // 以玩家实际出生点为初始中心，而不是 (0,0)。读档时玩家可能远离 (0,0)，
+      // 若仍以 (0,0) 登记，出生点周围没有已生成区块，进入游戏会空无一物。
+      const sp = useGame.getState().spawn
+      const cx = Math.floor(sp.x / 16)
+      const cz = Math.floor(sp.z / 16)
       for (let dx = -cover; dx <= cover; dx++) {
         for (let dz = -cover; dz <= cover; dz++) {
           const k = chunkKey(cx + dx, cz + dz)

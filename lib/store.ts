@@ -33,6 +33,8 @@ interface GameState {
   world: World | null
   worldName: string
   saveId: string | null
+  // 区分"新建世界"与"载入存档"，用于加载屏文案
+  isNewWorld: boolean
 
   health: number
   hunger: number
@@ -132,6 +134,7 @@ export const useGame = create<GameState>((set, get) => ({
   world: null,
   worldName: "",
   saveId: null,
+  isNewWorld: false,
 
   health: 20,
   hunger: 20,
@@ -201,6 +204,7 @@ export const useGame = create<GameState>((set, get) => ({
       gameMode,
       worldName: name.trim() || "新世界",
       saveId,
+      isNewWorld: true,
       health: 20,
       hunger: 20,
       hotbar: gameMode === "creative" ? [...creativeStacks.slice(0, 9)] : emptySlots(9),
@@ -229,18 +233,22 @@ export const useGame = create<GameState>((set, get) => ({
     const data = getSave(id)
     if (!data) return false
     const world = new World(data.seed, data.edits)
+    // 以玩家实际保存位置作为"出生点"，这样 LoadingScreen 预生成 / WorldRenderer 初始登记
+    // 都围绕玩家当前所在区块，而不是初始出生点 (0,0) 或旧 spawn，避免进游戏空无一物。
+    const p = data.player ?? { x: 0, y: 40, z: 0, yaw: 0, pitch: -0.7 }
     set({
       world,
       seed: data.seed,
       gameMode: data.gameMode,
       worldName: data.name,
       saveId: data.id,
+      isNewWorld: false,
       health: data.health ?? 20,
       hunger: data.hunger ?? 20,
       hotbar: data.hotbar?.slice() ?? emptySlots(9),
       inventory: data.inventory?.slice() ?? emptySlots(27),
       selectedHotbar: 0,
-      spawn: data.spawn ?? { x: 0, y: 40, z: 0 },
+      spawn: { x: p.x, y: p.y, z: p.z },
       worldTime: data.worldTime ?? 0.3,
       craftGrid: emptySlots(9),
       craftResult: null,
@@ -253,7 +261,6 @@ export const useGame = create<GameState>((set, get) => ({
       loadProgress: 0,
     })
     // PlayerController 会先按 spawn 把玩家放到地面，随后精确传回存档位置
-    const p = data.player ?? { x: 0, y: 40, z: 0 }
     setTimeout(() => {
       worldEvents.emit(EV_TELEPORT, { x: p.x, y: p.y, z: p.z })
       player.yaw = p.yaw ?? 0

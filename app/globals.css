@@ -71,7 +71,7 @@
 .mc-modal-box p{margin:0;text-align:center;font-size:14px}
 .mc-modal-actions{display:flex;gap:10px;width:100%}
 .mc-modal-actions .mc-button{flex:1;min-width:0}
-.mc-del-confirm{background:#7a2020}.mc-save-meta{opacity:.65;font-size:12px;white-space:nowrap}.game-root{position:relative;overflow:hidden}.game-root canvas{position:absolute;inset:0;width:100% !important;height:100% !important;display:block;touch-action:none;-webkit-user-drag:none;user-drag:none}.mc-debug{position:absolute;left:4px;top:4px;z-index:80;font-family:'Courier New',monospace;font-size:12px;line-height:1.35;color:#fff;text-shadow:1px 1px 0 #000;background:rgba(0,0,0,.45);padding:6px 10px;pointer-events:none;white-space:pre}.game-root img,.game-root svg,.game-root canvas,.game-root button,.game-root .slot,.game-root .mc-btn,.game-root .mc-hotbar-more{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}.game-hud{position:absolute;inset:0;pointer-events:none}.bars{position:absolute;display:flex;gap:14px;line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,0.55)}.bars.bottom-left{left:20px;bottom:86px;align-items:flex-end}.bars.top-left{left:16px;top:16px;flex-direction:column;gap:8px;align-items:flex-start}.bars.center{left:50%;bottom:86px;transform:translateX(-50%);align-items:flex-end}.mc-bar{filter:drop-shadow(1px 2px 0 rgba(0,0,0,0.65))}.mc-bar-img{display:block;image-rendering:pixelated;-webkit-user-drag:none;user-drag:none;max-width:min(45vw,267px);height:auto}.crosshair{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none}.crosshair-v{position:absolute;left:50%;top:50%;width:2px;height:20px;background:#fff;transform:translate(-50%,-50%)}.crosshair-h{position:absolute;left:50%;top:50%;width:20px;height:2px;background:#fff;transform:translate(-50%,-50%)}.hotbar{position:absolute;bottom:18px;left:50%;display:flex;transform:translateX(-50%)}.slot{position:relative;display:flex;width:60px;height:60px;align-items:center;justify-content:center;background:#555 url('/assets/Inventoryslot.png') center/110% 110% no-repeat;border:3px solid transparent;color:#fff;overflow:hidden}.slot.selected{border-color:#fff;box-shadow:0 0 0 2px #222}.slot-icon{display:block;line-height:0}.slot-count{position:absolute;left:3px;bottom:1px;font-size:15px;font-weight:900;color:#fff;line-height:1;text-shadow:1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000;letter-spacing:0.2px;white-space:nowrap}.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.55);color:#fff;pointer-events:auto;z-index:50}.overlay h2{font-size:30px;text-shadow:2px 2px #333}.inventory{background:rgba(0,0,0,.35)}
+.mc-del-confirm{background:#7a2020}.mc-save-meta{opacity:.65;font-size:12px;white-space:nowrap}.game-root{position:relative;overflow:hidden}.game-root canvas{position:absolute;inset:0;width:100% !important;height:100% !important;display:block;touch-action:none;-webkit-user-drag:none;user-drag:none}.mc-fire-inner{position:absolute;left:0;right:0;bottom:0;height:20%;pointer-events:none;background:radial-gradient(60% 100% at 50% 100%,rgba(255,196,0,.95),rgba(255,120,10,.65) 38%,rgba(230,60,5,.35) 62%,transparent 85%);filter:blur(1px);animation:mcFlame 0.9s ease-in-out infinite}.mc-fire-inner::before{content:'';position:absolute;left:0;right:0;bottom:0;height:60%;pointer-events:none;background:radial-gradient(70% 120% at 50% 100%,rgba(255,230,120,.9),transparent 70%);animation:mcFlameShift 0.7s ease-in-out infinite alternate}@keyframes mcFlame{0%,100%{opacity:.75;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.08)}}@keyframes mcFlameShift{0%{transform:translateX(-3%)}100%{transform:translateX(3%)}}.mc-debug{position:absolute;left:4px;top:4px;z-index:80;font-family:'Courier New',monospace;font-size:12px;line-height:1.35;color:#fff;text-shadow:1px 1px 0 #000;background:rgba(0,0,0,.45);padding:6px 10px;pointer-events:none;white-space:pre}.game-root img,.game-root svg,.game-root canvas,.game-root button,.game-root .slot,.game-root .mc-btn,.game-root .mc-hotbar-more{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}.game-hud{position:absolute;inset:0;pointer-events:none;z-index:30}.bars{position:absolute;display:flex;gap:14px;line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,0.55)}.bars.bottom-left{left:20px;bottom:86px;align-items:flex-end}.bars.top-left{left:16px;top:16px;flex-direction:column;gap:8px;align-items:flex-start}.bars.center{left:50%;bottom:86px;transform:translateX(-50%);align-items:flex-end}.mc-bar{filter:drop-shadow(1px 2px 0 rgba(0,0,0,0.65))}.mc-bar-img{display:block;image-rendering:pixelated;-webkit-user-drag:none;user-drag:none;max-width:min(45vw,267px);height:auto}.crosshair{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none}.crosshair-v{position:absolute;left:50%;top:50%;width:2px;height:20px;background:#fff;transform:translate(-50%,-50%)}.crosshair-h{position:absolute;left:50%;top:50%;width:20px;height:2px;background:#fff;transform:translate(-50%,-50%)}.hotbar{position:absolute;bottom:18px;left:50%;display:flex;transform:translateX(-50%)}.slot{position:relative;display:flex;width:60px;height:60px;align-items:center;justify-content:center;background:#555 url('/assets/Inventoryslot.png') center/110% 110% no-repeat;border:3px solid transparent;color:#fff;overflow:hidden}.slot.selected{border-color:#fff;box-shadow:0 0 0 2px #222}.slot-icon{display:block;line-height:0}.slot-count{position:absolute;left:3px;bottom:1px;font-size:15px;font-weight:900;color:#fff;line-height:1;text-shadow:1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000;letter-spacing:0.2px;white-space:nowrap}.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.55);color:#fff;pointer-events:auto;z-index:50}.overlay h2{font-size:30px;text-shadow:2px 2px #333}.inventory{background:rgba(0,0,0,.35)}
 
 /* ===== 移动端控制 UI（手机）—— 摇杆/跳跃底线对齐，两侧完全对称 ===== */
 .game-hud.is-mobile{touch-action:none}
@@ -103,15 +103,20 @@
 .hotbar.mc-hotbar-mobile .slot{width:52px;height:52px}
 .game-root.is-phone .slot-count{font-size:13px}
 
-/* 移动端：hotbar 右侧三点“更多/背包”按钮，紧跟物品栏形成一体 */
-.mc-hotbar-more{flex:0 0 auto;width:58px;height:58px;border:2px solid #222;background:#555;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent;outline:none;appearance:none;-webkit-appearance:none;padding:0;font:inherit;border-radius:0;letter-spacing:1px;line-height:1;font-size:20px}
+/* 移动端：hotbar 右侧三点“更多/背包”按钮，与物品栏格子完全同尺寸同质感，连成一体 */
+.mc-hotbar-more{flex:0 0 auto;width:52px;height:52px;border:3px solid transparent;background:#555 url('/assets/Inventoryslot.png') center/110% 110% no-repeat;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent;outline:none;appearance:none;-webkit-appearance:none;padding:0;font:inherit;border-radius:0;letter-spacing:1px;line-height:1;font-size:24px;overflow:hidden}
 .mc-hotbar-more:active{filter:brightness(.85)}
-/* 平板：hotbar 下 slot 宽高 82，按钮跟 82 对齐 */
-.game-root.is-tablet .mc-hotbar-more{width:82px;height:82px;letter-spacing:2px;font-size:28px}
-/* 超窄屏 slot 54，按钮跟 54 对齐 */
+/* 平板：hotbar 下 slot 宽高 76，按钮跟 76 对齐 */
+.game-root.is-tablet .mc-hotbar-more{width:76px;height:76px;letter-spacing:2px;font-size:34px}
+/* 超窄屏 slot 48，按钮跟 48 对齐 */
 @media (max-width: 420px) {
-  .game-root.is-phone .mc-hotbar-more{width:54px;height:54px}
+  .game-root.is-phone .mc-hotbar-more{width:48px;height:48px;font-size:22px}
 }
+
+/* 移动端：上方居中的暂停菜单按钮 */
+.mc-pause-btn{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:3px solid transparent;background:#555 url('/assets/Inventoryslot.png') center/110% 110% no-repeat;color:#fff;font-size:22px;font-weight:900;letter-spacing:1px;line-height:1;cursor:pointer;pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent;outline:none;appearance:none;-webkit-appearance:none;overflow:hidden}
+.mc-pause-btn:active{filter:brightness(.85)}
+.game-root.is-tablet .mc-pause-btn{width:56px;height:56px;font-size:26px}
 
 /* ===== 平板（Pad）—— 摇杆/跳跃对称放大到 180x180 / b:88 / 锚点 56px ===== */
 .game-root.is-tablet .mc-stick{left:56px;bottom:88px;width:180px;height:180px}
@@ -306,6 +311,23 @@
   }
   .mc-slot-hover {
     background: rgba(255, 255, 255, 0.35);
+  }
+  /* 熔炉/背包面板右上角关闭按钮 */
+  .mc-btn-x {
+    background: #8b8b8b;
+    color: #3f3f3f;
+    font-weight: 900;
+    border: 2px solid;
+    border-color: #fefefe #555 #555 #fefefe;
+    box-shadow: 0 0 0 2px #000;
+    image-rendering: pixelated;
+    user-select: none;
+  }
+  .mc-btn-x:hover {
+    background: #9d9d9d;
+  }
+  .mc-btn-x:active {
+    background: #6f6f6f;
   }
   .pixelated {
     image-rendering: pixelated;

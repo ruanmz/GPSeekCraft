@@ -27,6 +27,11 @@ import { isSolid, isLiquid, BLOCKS, getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
 import { mobileInput, detectMobileMode } from "@/lib/player-ref"
 
+// 进入岩浆后点燃的持续燃烧时长（秒）
+const FIRE_DURATION = 5
+// 液体中按住跳跃的上浮速度：约 2 倍旧值(3.2)，足以跳出水面/岩浆面跳上岸边
+const WATER_UP_SPEED = 6.4
+
 export function PlayerController() {
   const { camera } = useThree()
   const world = useGame((s) => s.world)
@@ -34,7 +39,7 @@ export function PlayerController() {
   const lastSpaceTap = useRef(0)
   const autoStepCooldownRef = useRef(0) // 自动跳一格的冷却（秒），避免连续推两次
   const overlayRef = useRef(useGame.getState().overlay)
-  const damageAccum = useRef({ lava: 0, cactus: 0, void_: 0, regen: 0 })
+  const damageAccum = useRef({ lava: 0, cactus: 0, void_: 0, regen: 0, fire: 0 })
   const settings = useGame((s) => s.settings)
   const settingsRef = useRef(settings)
   settingsRef.current = settings
@@ -138,20 +143,30 @@ export function PlayerController() {
       player.pitch = Math.max(-lim, Math.min(lim, player.pitch))
     }
 
+    // Chromium 规定：退出 pointer lock 后 ~1.3s 内再次 requestPointerLock 会抛 SecurityError。
+    // 并且 requestPointerLock 的失败是“Promise 拒绝”而非同步 throw，try/catch 拦不住。
+    // 用时间戳做冷却：上次退出后未过冷却期就忽略点击；并 catch 掉 Promise 拒绝避免报错。
+    let lastLockExit = 0
+    const onLockChange = () => {
+      const st = useGame.getState()
+      if (document.pointerLockElement !== canvas && st.screen === "playing" && st.overlay === null) {
+        lastLockExit = performance.now()
+        st.setOverlay("pause")
+      }
+    }
+
     const onClickCanvas = () => {
       // iPadOS 18 触屏下 requestPointerLock 会被拒绝（无鼠标光标），
       // 移动端用 TouchLookHandler 处理转视角，完全不走指针锁路径。
       if (detectMobileMode().isMobile) return
       const st = useGame.getState()
       if (st.screen === "playing" && st.overlay === null) {
-        try { canvas.requestPointerLock?.() } catch (_) { /* 静默失败即可，不影响继续玩 */ }
-      }
-    }
-
-    const onLockChange = () => {
-      const st = useGame.getState()
-      if (document.pointerLockElement !== canvas && st.screen === "playing" && st.overlay === null) {
-        st.setOverlay("pause")
+        // 冷却期内不重锁，避免 SecurityError
+        if (performance.now() - lastLockExit < 1250) return
+        try {
+          const p = canvas.requestPointerLock?.()
+          if (p instanceof Promise) p.catch(() => { /* 拒绝（如权限/冷却）静默忽略 */ })
+        } catch (_) { /* 静默失败即可，不影响继续玩 */ }
       }
     }
 
@@ -258,6 +273,23 @@ export function PlayerController() {
       damageAccum.current.lava = 0
       st.damage(2)
     } else if (!inLavaNow) damageAccum.current.lava = 0
+
+    // 着火：进入岩浆立即点燃 5 秒；离开岩浆后仍在燃烧期内持续掉血（每 0.5s 扣 2 血）
+    if (inLavaNow) player.fireLeft = FIRE_DURATION
+    if (player.fireLeft > 0) {
+      player.fireLeft = Math.max(0, player.fireLeft - rawDelta)
+      if (!inLavaNow) {
+        damageAccum.current.fire += rawDelta
+        if (!isCreative && damageAccum.current.fire >= 0.5) {
+          damageAccum.current.fire = 0
+          st.damage(2)
+        }
+      } else {
+        damageAccum.current.fire = 0
+      }
+    } else {
+      damageAccum.current.fire = 0
+    }
 
     if (touchCactusNow && !isCreative && damageAccum.current.cactus >= 0.5) {
       damageAccum.current.cactus = 0
@@ -407,7 +439,8 @@ export function PlayerController() {
       if (player.inWater) {
         player.vy -= GRAVITY * 0.25 * dt
         if (player.vy < -3) player.vy = -3
-        if (k["Space"] || mobileInput.jump) player.vy = 3.2 // 上浮
+        // 在液体中按住跳跃：给一个足够高的上浮速度，确保能一次性跳出水面/岩浆面跳上岸边
+        if (k["Space"] || mobileInput.jump) player.vy = WATER_UP_SPEED
       } else {
         player.vy -= GRAVITY * dt
         if (player.vy < -TERMINAL_VELOCITY) player.vy = -TERMINAL_VELOCITY

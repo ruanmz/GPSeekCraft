@@ -16,6 +16,8 @@ export interface PlayerRuntime {
   sneaking: boolean
   // 上一帧脚下方块，用于摔落伤害计算
   fallStartY: number
+  // 剩余着火秒数（>0 时显示火焰特效并持续掉血）
+  fireLeft: number
   ready: boolean
 }
 
@@ -35,6 +37,7 @@ export const player: PlayerRuntime = {
   sprinting: false,
   sneaking: false,
   fallStartY: 40,
+  fireLeft: 0,
   ready: false,
 }
 
@@ -121,5 +124,6 @@ export function resetPlayer(x: number, y: number, z: number) {
   player.vz = 0
   player.onGround = false
   player.fallStartY = y
+  player.fireLeft = 0
   player.ready = true
 }

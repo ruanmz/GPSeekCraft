@@ -51,16 +51,17 @@ export function SkyLighting() {
     const horizonness = 1 - Math.min(1, Math.abs(sunY) * 3)
 
     // ====== 阴影相机：跟随玩家移动，让 ShadowMap 始终保持在玩家附近 =====
-    // 用玩家世界坐标（camera 下方 player.y 玩家脚底）
-    const px = camera.position.x
-    const py = camera.position.y
-    const pz = camera.position.z
+      // 用玩家世界坐标（camera 下方 player.y 玩家脚底）
+      const px = camera.position.x
+      const py = camera.position.y
+      const pz = camera.position.z
 
     if (sunRef.current) {
-      // 太阳光方向在世界空间里固定为 sunDir，位置 = shadowTarget + sunDir * 距离
-      const SIZE = 128 // 覆盖 ±64 m → renderDistance=4 每边 64m 全囊括
+      // 覆盖范围尽量压缩（±40m，约渲染距离 2.5 格），阴影多用于玩家近处地面，
+      // 远处的大块几何渲染进 shadowmap 是最大的性能杀手。
+      const SIZE = 80 // 覆盖 ±40 m
       const FAR = 320
-      const NEAR = 1
+      const NEAR = 2
       const sun = sunRef.current
       sun.position.set(
         px + sunDir.x * FAR * 0.55,
@@ -73,8 +74,8 @@ export function SkyLighting() {
       sun.intensity = Math.max(0, sunY) * 1.25 * brightness + 0.01
 
       const sh = sun.shadow as THREE.DirectionalLightShadow
-      // 已经是 PCFSoft(默认)，升 mapSize
-      const targetSize = 2048
+      // 分辨率降到 1536：覆盖范围缩小后 texel 密度足够，还能再省一档算力
+      const targetSize = 1536
       if (sh.mapSize.width !== targetSize) {
         sh.mapSize.set(targetSize, targetSize)
         sh.needsUpdate = true
@@ -127,14 +128,14 @@ export function SkyLighting() {
         castShadow={shadows}
         intensity={1}
         color="#fff3d6"
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-near={1}
+        shadow-mapSize-width={1536}
+        shadow-mapSize-height={1536}
+        shadow-camera-near={2}
         shadow-camera-far={320}
-        shadow-camera-left={-64}
-        shadow-camera-right={64}
-        shadow-camera-top={64}
-        shadow-camera-bottom={-64}
+        shadow-camera-left={-40}
+        shadow-camera-right={40}
+        shadow-camera-top={40}
+        shadow-camera-bottom={-40}
         shadow-bias={-0.0004}
         shadow-normalBias={0.06}
       />

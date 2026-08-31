@@ -143,7 +143,6 @@ export function FurnaceOverlay() {
 
   const burnRatio = furnace.burnMax > 0 ? furnace.burnLeft / furnace.burnMax : 0
   const flameHeight = Math.max(0, Math.min(18, 18 * burnRatio))
-  const progressWidth = Math.max(0, Math.min(24, 24 * furnace.progress))
 
   return (
     <div
@@ -153,10 +152,29 @@ export function FurnaceOverlay() {
     >
       <div
         className="mc-panel relative"
-        style={{ width: 380, height: 300, padding: 16 }}
+        style={{ width: 380, height: 360, padding: 16, overflow: "visible" }}
       >
+        <button
+          className="mc-btn-x"
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            width: 28,
+            height: 28,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            lineHeight: 1,
+          }}
+          onClick={() => setOverlay(null)}
+          aria-label="关闭"
+        >
+          ✕
+        </button>
         <div className="relative" style={{ width: "100%", height: "100%" }}>
-          <div className="absolute left-[30px] top-[20px]">
+          <div className="absolute" style={{ left: 20, top: 10 }}>
             <FurnaceSlot
               stack={furnace.input}
               size={52}
@@ -164,7 +182,7 @@ export function FurnaceOverlay() {
             />
           </div>
 
-          <div className="absolute left-[30px] top-[86px]">
+          <div className="absolute" style={{ left: 20, top: 68 }}>
             <FurnaceSlot
               stack={furnace.fuel}
               size={52}
@@ -172,7 +190,7 @@ export function FurnaceOverlay() {
             />
           </div>
 
-          <div className="absolute left-[124px] top-[96px]" style={{ width: 24, height: 18 }}>
+          <div className="absolute" style={{ left: 88, top: 80, width: 24, height: 18 }}>
             <svg width="24" height="18" viewBox="0 0 24 18" style={{ display: "block", imageRendering: "pixelated" }}>
               <rect x="0" y="0" width="24" height="18" fill="#373737" />
               <rect
@@ -193,27 +211,25 @@ export function FurnaceOverlay() {
             </svg>
           </div>
 
-          <div className="absolute left-[102px] top-[36px]" style={{ width: 24, height: 16 }}>
-            <svg width="24" height="16" viewBox="0 0 24 16" style={{ display: "block", imageRendering: "pixelated" }}>
-              <rect x="0" y="0" width="24" height="16" fill="#373737" />
-              <rect
-                x={0}
-                y={0}
-                width={progressWidth}
-                height={16}
-                fill="url(#arrowGrad)"
-                style={{ imageRendering: "pixelated" }}
-              />
-              <defs>
-                <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#C0C0C0" />
-                  <stop offset="100%" stopColor="#FFD700" />
-                </linearGradient>
-              </defs>
-            </svg>
+          {/* 进度条 + 指向输出的箭头 */}
+          <div className="absolute flex items-center" style={{ left: 88, top: 24 }}>
+            <div style={{ width: 22, height: 16 }}>
+              <svg width="22" height="16" viewBox="0 0 22 16" style={{ display: "block", imageRendering: "pixelated" }}>
+                <rect x="0" y="0" width="22" height="16" fill="#373737" />
+                <rect x={0} y={0} width={Math.max(0, Math.min(22, 22 * furnace.progress))} height={16} fill="#C0C0C0" style={{ imageRendering: "pixelated" }} />
+              </svg>
+            </div>
+            <div style={{ width: 24, height: 16, marginLeft: 2 }}>
+              <svg width="24" height="16" viewBox="0 0 24 16" style={{ display: "block", imageRendering: "pixelated" }}>
+                {/* 箭头本体：始终画完整的灰色箭头 */}
+                <path d="M3 5 L14 5 L14 1 L22 8 L14 15 L14 11 L3 11 Z" fill="#C0C0C0" />
+                {/* 进度未到右侧部分用暗色盖掉，进度越大露出的箭头越多（从左到右点亮） */}
+                <rect x={Math.max(0, Math.min(24, 24 * furnace.progress))} y="0" width={24 - Math.max(0, Math.min(24, 24 * furnace.progress))} height="16" fill="#373737" />
+              </svg>
+            </div>
           </div>
 
-          <div className="absolute left-[196px] top-[18px]">
+          <div className="absolute" style={{ left: 172, top: 8 }}>
             <FurnaceSlot
               stack={furnace.output}
               size={56}
@@ -224,16 +240,16 @@ export function FurnaceOverlay() {
           <div
             className="absolute left-0 grid gap-[2px]"
             style={{
-              top: 150,
-              gridTemplateColumns: "repeat(9, 40px)",
-              padding: "4px 10px",
+              top: 146,
+              gridTemplateColumns: "repeat(9, 34px)",
+              padding: "0 13px",
             }}
           >
             {inventory.map((stack, i) => (
               <InvSlot
                 key={`inv-${i}`}
                 stack={stack}
-                size={40}
+                size={34}
                 onClick={(e) => clickSlot("inventory", i, e.button === 2 ? "right" : "left", e.shiftKey)}
               />
             ))}
@@ -242,35 +258,21 @@ export function FurnaceOverlay() {
           <div
             className="absolute left-0 grid gap-[2px]"
             style={{
-              top: 248,
-              gridTemplateColumns: "repeat(9, 40px)",
-              padding: "4px 10px",
+              top: 252,
+              gridTemplateColumns: "repeat(9, 34px)",
+              padding: "0 13px",
             }}
           >
             {hotbar.map((stack, i) => (
               <InvSlot
                 key={`hb-${i}`}
                 stack={stack}
-                size={40}
+                size={34}
                 selected={i === selectedHotbar}
                 onClick={(e) => clickSlot("hotbar", i, e.button === 2 ? "right" : "left", e.shiftKey)}
               />
             ))}
           </div>
-
-          <button
-            className="mc-button absolute"
-            style={{
-              right: 16,
-              bottom: 4,
-              minHeight: 28,
-              padding: "4px 14px",
-              fontSize: 12,
-            }}
-            onClick={() => setOverlay(null)}
-          >
-            关闭
-          </button>
         </div>
       </div>
 

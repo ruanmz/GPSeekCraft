@@ -193,21 +193,25 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
     id: 16, key: "COAL_ORE", name: "煤矿石",
     top: c("#5a5a5a"), side: c("#585858"), bottom: c("#585858"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 3,
+    drop: 101, // 煤炭
   },
   [BLOCKS.IRON_ORE]: {
     id: 17, key: "IRON_ORE", name: "铁矿石",
     top: c("#b79b86"), side: c("#af9480"), bottom: c("#af9480"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 3,
+    drop: 1250, // 粗铁
   },
   [BLOCKS.GOLD_ORE]: {
     id: 18, key: "GOLD_ORE", name: "金矿石",
     top: c("#d9c56a"), side: c("#cbb85f"), bottom: c("#cbb85f"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 3,
+    drop: 1251, // 粗金
   },
   [BLOCKS.DIAMOND_ORE]: {
     id: 19, key: "DIAMOND_ORE", name: "钻石矿石",
     top: c("#5fd3c6"), side: c("#57c6ba"), bottom: c("#57c6ba"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 3,
+    drop: 104, // 钻石
   },
   [BLOCKS.GLASS]: {
     id: 20, key: "GLASS", name: "玻璃",
@@ -253,21 +257,25 @@ export const BLOCK_DEFS: Record<BlockId, BlockDef> = {
     id: 28, key: "REDSTONE_ORE", name: "红石矿石",
     top: c("#8a3030"), side: c("#7a2828"), bottom: c("#7a2828"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 5, hardness: 3,
+    drop: 120, // 红石粉
   },
   [BLOCKS.LAPIS_ORE]: {
     id: 29, key: "LAPIS_ORE", name: "青金石矿石",
     top: c("#1a3a8a"), side: c("#16307a"), bottom: c("#16307a"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 3,
+    drop: 121, // 青金石
   },
   [BLOCKS.EMERALD_ORE]: {
     id: 30, key: "EMERALD_ORE", name: "绿宝石矿石",
     top: c("#206a3a"), side: c("#1a5a30"), bottom: c("#1a5a30"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 3,
+    drop: 122, // 绿宝石
   },
   [BLOCKS.COPPER_ORE]: {
     id: 31, key: "COPPER_ORE", name: "铜矿石",
     top: c("#a8683a"), side: c("#9a5c30"), bottom: c("#9a5c30"),
     solid: true, transparent: false, liquid: false, gravity: false, luminance: 0, hardness: 3,
+    drop: 1252, // 粗铜
   },
   [BLOCKS.GRANITE]: {
     id: 32, key: "GRANITE", name: "花岗岩",
