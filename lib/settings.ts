@@ -8,6 +8,7 @@ export interface Settings {
   simulationDistance: number
   shadows: boolean
   autoJump: boolean
+  musicVolume: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
   simulationDistance: 8,
   shadows: true,
   autoJump: true,
+  musicVolume: 0.18,
 }
 
 export function loadGlobalSettings(): Settings {

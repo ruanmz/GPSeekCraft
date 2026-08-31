@@ -22,7 +22,7 @@ import {
   PLAYER_HEIGHT,
 } from "@/lib/physics"
 import { worldEvents, EV_TELEPORT } from "@/lib/emitter"
-import { playSfx, ensureAudioResumed } from "@/lib/sound"
+import { playSfx, ensureAudioResumed, ensureEnvironmentMusic, setCaveAmbient } from "@/lib/sound"
 import { isSolid, isLiquid, BLOCKS, getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
 import { mobileInput, detectMobileMode } from "@/lib/player-ref"
@@ -40,6 +40,7 @@ export function PlayerController() {
   const autoStepCooldownRef = useRef(0) // 自动跳一格的冷却（秒），避免连续推两次
   const overlayRef = useRef(useGame.getState().overlay)
   const damageAccum = useRef({ lava: 0, cactus: 0, void_: 0, regen: 0, fire: 0 })
+  const lastMusicCheck = useRef(0)
   const settings = useGame((s) => s.settings)
   const settingsRef = useRef(settings)
   settingsRef.current = settings
@@ -238,6 +239,10 @@ export function PlayerController() {
     if (!world || !player.ready) return
     const st = useGame.getState()
     const dt = Math.min(rawDelta, 0.05)
+    if (st.screen === "playing" && performance.now() - lastMusicCheck.current > 3000) {
+      lastMusicCheck.current = performance.now()
+      void ensureEnvironmentMusic(st.worldTime)
+    }
 
     // ================================
     // 环境伤害 / 回血（按秒积累，到阈值触发一次）
@@ -249,6 +254,17 @@ export function PlayerController() {
     const blockH = world.getBlock(x, yHead, z) ?? 0
     const blockF = world.getBlock(x, yFeet, z) ?? 0
     const inLavaNow = blockH === BLOCKS.LAVA || blockF === BLOCKS.LAVA
+    // 洞穴判定：玩家在地表以下，头顶和四周被方块包围才播放洞穴环境音。
+    const surfaceY = world.highestSolid(x, z)
+    const enclosed = [
+      world.getBlock(x + 1, yHead, z), world.getBlock(x - 1, yHead, z),
+      world.getBlock(x, yHead, z + 1), world.getBlock(x, yHead, z - 1),
+      world.getBlock(x, yHead + 1, z),
+    ].every((id) => id !== undefined && isSolid(id))
+    const inCaveNow = yHead < surfaceY - 5 && enclosed
+    if (performance.now() - lastMusicCheck.current > 3000) {
+      void setCaveAmbient(inCaveNow)
+    }
     // 仙人掌：在玩家 bbox 内任意一格是仙人掌就算触碰到
     let touchCactusNow = false
     {

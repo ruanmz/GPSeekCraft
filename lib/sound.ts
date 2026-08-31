@@ -3,6 +3,7 @@
 // 所有音效纯代码生成，不依赖任何外部音频文件。
 
 import { BLOCK_DEFS, type BlockId, BLOCKS } from "./blocks"
+import { OggVorbisDecoder } from "@wasm-audio-decoders/ogg-vorbis"
 
 // ---- 工具：确定性伪随机 ----
 function mulberry32(seed: number) {
@@ -20,6 +21,19 @@ function mulberry32(seed: number) {
 let audioCtx: AudioContext | null = null
 let masterGain: GainNode | null = null
 let sfxGain: GainNode | null = null
+let musicGain: GainNode | null = null
+let ambientGain: GainNode | null = null
+let musicSource: AudioBufferSourceNode | null = null
+let ambientSource: AudioBufferSourceNode | null = null
+let ambientBuffer: AudioBuffer | null = null
+let ambientLoadPromise: Promise<AudioBuffer | null> | null = null
+let ambientActive = false
+let musicBuffer: AudioBuffer | null = null
+let musicLoadPromise: Promise<AudioBuffer | null> | null = null
+let oggDecoder: OggVorbisDecoder | null = null
+let oggDecoderPromise: Promise<OggVorbisDecoder> | null = null
+const decodedFileCache = new Map<string, AudioBuffer>()
+const sfxFileCache = new Map<string, Promise<AudioBuffer | null>>()
 
 export function getAudioCtx(): AudioContext | null {
   if (typeof window === "undefined") return null
@@ -37,6 +51,12 @@ export function getAudioCtx(): AudioContext | null {
     sfxGain = audioCtx.createGain()
     sfxGain.gain.value = 0.75
     sfxGain.connect(masterGain)
+    musicGain = audioCtx.createGain()
+    musicGain.gain.value = 0.18
+    musicGain.connect(masterGain)
+    ambientGain = audioCtx.createGain()
+    ambientGain.gain.value = 0
+    ambientGain.connect(masterGain)
   }
   return audioCtx
 }
@@ -383,6 +403,69 @@ function defaultHighpassHzFor(name: SfxName): number {
   }
 }
 
+// Minecraft 资源包的声音事件以 OGG 文件组织；解码失败时继续使用程序化音效。
+async function decodeOgg(path: string): Promise<AudioBuffer | null> {
+  const ctx = getAudioCtx()
+  if (!ctx) return null
+  const cached = decodedFileCache.get(path)
+  if (cached) return cached
+  try {
+    const res = await fetch(path)
+    if (!res.ok) return null
+    const bytes = new Uint8Array(await res.arrayBuffer())
+    oggDecoderPromise ??= (async () => {
+      const decoder = new OggVorbisDecoder()
+      await decoder.ready
+      return decoder
+    })()
+    oggDecoder = await oggDecoderPromise
+    const decoded = await oggDecoder.decodeFile(bytes)
+    const buffer = ctx.createBuffer(decoded.channelData.length, decoded.samplesDecoded, decoded.sampleRate)
+    decoded.channelData.forEach((channel, index) => buffer.copyToChannel(channel, index))
+    decodedFileCache.set(path, buffer)
+    return buffer
+  } catch {
+    return null
+  }
+}
+
+async function firstAvailableOgg(paths: string[]): Promise<AudioBuffer | null> {
+  for (const path of paths) {
+    const buffer = await decodeOgg(path)
+    if (buffer) return buffer
+  }
+  return null
+}
+
+const MATERIAL_SOUND_DIR: Record<string, string> = {
+  step_grass: "grass",
+  step_stone: "stone",
+  step_sand: "sand",
+  step_gravel: "gravel",
+  step_wood: "wood",
+  step_snow: "snow",
+}
+
+function sfxOggCandidates(name: SfxName, variant: number): string[] {
+  const dir = MATERIAL_SOUND_DIR[name]
+  if (!dir) return []
+  const index = (variant % 4) + 1
+  return [
+    `/assets/minecraft/sounds/block/${dir}/${dir}${index}.ogg`,
+    `/assets/minecraft/sounds/block/${dir}/${name.replace("step_", "")}${index}.ogg`,
+  ]
+}
+
+async function getOggSfx(name: SfxName, variant: number): Promise<AudioBuffer | null> {
+  const key = `${name}#${variant}`
+  let pending = sfxFileCache.get(key)
+  if (!pending) {
+    pending = firstAvailableOgg(sfxOggCandidates(name, variant))
+    sfxFileCache.set(key, pending)
+  }
+  return pending
+}
+
 // 播放 /assets/click.mp3（Minecraft 样式按钮点击音）
 let uiClickBuf: AudioBuffer | null = null
 export async function playUiClick(): Promise<void> {
@@ -407,12 +490,13 @@ export async function playUiClick(): Promise<void> {
   }
 }
 
-export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
+export async function playSfx(name: SfxName, opts: PlayOpts = {}): Promise<void> {
   const ctx = getAudioCtx()
   if (!ctx || !sfxGain) return
   ensureAudioResumed()
   const variant = opts.variant ?? Math.floor(Math.random() * SFX_VARIANTS)
-  const buf = getBuffer(name, variant % SFX_VARIANTS)
+  const ogg = await getOggSfx(name, variant % SFX_VARIANTS)
+  const buf = ogg ?? getBuffer(name, variant % SFX_VARIANTS)
   if (!buf) return
 
   const src = ctx.createBufferSource()
@@ -502,6 +586,89 @@ export function placeTuneForBlock(blockId: BlockId): BlockSfxTune {
   const pitch = Math.max(0.75, 1.1 - h * 0.1)
   const volume = 0.75 + Math.min(0.25, h * 0.06)
   return { volume, pitch }
+}
+
+const MENU_MUSIC = [
+  "/assets/minecraft/sounds/music/menu/beginning_2.ogg",
+  "/assets/minecraft/sounds/music/menu/floating_trees.ogg",
+  "/assets/minecraft/sounds/music/menu/moog_city_2.ogg",
+]
+const DAY_MUSIC = [
+  "/assets/minecraft/sounds/music/game/creative/aria_math.ogg",
+  "/assets/minecraft/sounds/music/game/creative/biome_fest.ogg",
+  "/assets/minecraft/sounds/music/game/an_ordinary_day.ogg",
+]
+const NIGHT_MUSIC = [
+  "/assets/minecraft/sounds/music/game/stand_tall.ogg",
+  "/assets/minecraft/sounds/music/game/left_to_bloom.ogg",
+]
+let activeMusicKind: "menu" | "world" | null = null
+
+export function setMusicVolume(value: number): void {
+  const ctx = getAudioCtx()
+  if (!ctx || !musicGain) return
+  musicGain.gain.setTargetAtTime(Math.max(0, Math.min(1, value)), ctx.currentTime, 0.08)
+}
+
+async function startMusic(kind: "menu" | "world", paths: string[]): Promise<void> {
+  const ctx = getAudioCtx()
+  if (!ctx || !musicGain || activeMusicKind === kind) return
+  ensureAudioResumed()
+  if (musicSource) {
+    try { musicSource.stop() } catch { /* 已停止 */ }
+    musicSource.disconnect()
+    musicSource = null
+  }
+  const buffer = await firstAvailableOgg(paths)
+  if (!buffer || activeMusicKind === kind) return
+  const source = ctx.createBufferSource()
+  source.buffer = buffer
+  source.loop = true
+  source.connect(musicGain)
+  source.start()
+  musicSource = source
+  musicBuffer = buffer
+  activeMusicKind = kind
+}
+
+export function ensureMenuMusic(): void {
+  void startMusic("menu", MENU_MUSIC)
+}
+
+export async function ensureEnvironmentMusic(worldTime: number): Promise<void> {
+  const paths = worldTime > 0.75 || worldTime < 0.25 ? NIGHT_MUSIC : DAY_MUSIC
+  await startMusic("world", paths)
+}
+
+const CAVE_AMBIENT = Array.from({ length: 23 }, (_, index) =>
+  `/assets/minecraft/sounds/ambient/cave/cave${index + 1}.ogg`,
+)
+
+export async function setCaveAmbient(active: boolean): Promise<void> {
+  const ctx = getAudioCtx()
+  if (!ctx || !ambientGain || ambientActive === active) return
+  ambientActive = active
+  if (active) {
+    ambientLoadPromise ??= firstAvailableOgg(CAVE_AMBIENT)
+    ambientBuffer = await ambientLoadPromise
+    if (!ambientBuffer || !ambientActive) return
+    const source = ctx.createBufferSource()
+    source.buffer = ambientBuffer
+    source.loop = true
+    source.connect(ambientGain)
+    source.start()
+    ambientSource = source
+  }
+  ambientGain.gain.setTargetAtTime(active ? 0.11 : 0, ctx.currentTime, 0.35)
+  if (!active && ambientSource) {
+    const source = ambientSource
+    ambientSource = null
+    window.setTimeout(() => {
+      try { source.stop() } catch { /* 已停止 */ }
+      source.disconnect()
+    }, 1200)
+  }
+  musicGain.gain.setTargetAtTime(active ? 0.08 : 0.18, ctx.currentTime, 0.35)
 }
 
 // 防止未使用 import 警告（lint 用）
