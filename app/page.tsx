@@ -16,6 +16,7 @@ import { getBlock } from "@/lib/blocks"
 import { getItem } from "@/lib/items"
 import { listSaves, deleteSave, type SaveData } from "@/lib/save"
 import { ensureMenuMusic, playUiClick, setMusicVolume } from "@/lib/sound"
+import { MenuPanorama } from "@/components/menu-panorama"
 
 function getBlockName(id: number) { return getBlock(id).name }
 function getItemName(id: number) { return getItem(id).name }
@@ -285,6 +286,7 @@ function Menu() {
     <main className="mc-menu">
       <div className="mc-logo">GPSEEKCRAFT</div>
       <p className="mc-subtitle">浏览器体素沙盒</p>
+      <MenuPanorama />
       <section className="mc-menu-panel" aria-label="主菜单">
         <button className="mc-button mc-wide" {...makeHandlers(start)}>开始游戏</button>
         <button className="mc-button mc-wide" {...makeHandlers(() => { setError(""); setView("settings") })}>设置</button>
